@@ -35,6 +35,7 @@ export interface Timesheet {
   vip_name?: string | null;
   is_task?: number | null;
   task: string;
+  site_name?: string | null;
   status_approved: number; // 0: Pending, 1: Approved, -1: Rejected
   created_at: string;
 }
