@@ -1,0 +1,6 @@
+{
+  "name": "Mitra Portal",
+  "description": "Portal for managing driver timesheets and approvals based on specified user and timesheet schemas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
