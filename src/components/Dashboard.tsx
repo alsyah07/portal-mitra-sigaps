@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Timesheet, Driver } from '../types';
 import { 
   Users, 
@@ -13,6 +13,7 @@ import {
   MapPin,
   Calendar,
   ChevronRight,
+  ChevronLeft,
   Filter,
   Eye,
   History,
@@ -45,6 +46,10 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [selectedTimesheet, setSelectedTimesheet] = useState<Timesheet | null>(null);
+  const [driverPage, setDriverPage] = useState(1);
+  const [driverItemsPerPage, setDriverItemsPerPage] = useState(5);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFormData, setEditFormData] = useState<Partial<Timesheet>>({});
 
   const fetchTimesheets = async () => {
     try {
@@ -143,6 +148,42 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     }
   };
 
+  const handleUpdateTimesheet = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTimesheet) return;
+
+    try {
+      const response = await fetch(`/api/timesheets/${selectedTimesheet.id_timesheets_mitra}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editFormData),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setTimesheets(prev => prev.map(t => t.id_timesheets_mitra === selectedTimesheet.id_timesheets_mitra ? { ...t, ...editFormData } : t));
+        setSelectedTimesheet(prev => prev ? { ...prev, ...editFormData } : null);
+        setIsEditing(false);
+        Swal.fire({
+          title: 'Success',
+          text: 'Timesheet log has been successfully updated.',
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false,
+          customClass: { popup: 'rounded-[32px]' }
+        });
+      }
+    } catch (err) {
+      console.error('Failed to update timesheet:', err);
+      Swal.fire('Error', 'Failed to synchronize updates with the master node.', 'error');
+    }
+  };
+
+  const handleEditClick = (ts: Timesheet) => {
+    setSelectedTimesheet(ts);
+    setEditFormData(ts);
+    setIsEditing(true);
+  };
+
   const getStatusBadge = (status: number) => {
     switch (status) {
       case 1:
@@ -197,179 +238,156 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
   const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const renderTable = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.02),0_1px_2px_0_rgba(0,0,0,0.06)] overflow-hidden">
+    <div className="bg-white border border-gray-200 rounded-[32px] overflow-hidden shadow-sm ring-1 ring-black/[0.02]">
       {/* Table Controls */}
-      <div className="p-4 flex flex-col md:flex-row gap-6 items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-gray-500">Show</span>
-          <div className="relative group">
+      <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-[#fcfcfa]/50">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 pr-4 border-r border-gray-100">
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Per Page</span>
             <select 
               value={itemsPerPage}
               onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-              className="appearance-none border border-gray-200 rounded-xl px-4 py-2 pr-10 text-sm bg-gray-50/50 hover:bg-white hover:border-blue-300 focus:outline-none focus:ring-4 focus:ring-blue-100/50 transition-all cursor-pointer ring-offset-2"
+              className="bg-gray-50 border-none text-xs font-bold rounded-lg px-2 py-1 focus:ring-0 cursor-pointer"
             >
               <option value={5}>5</option>
               <option value={10}>10</option>
               <option value={25}>25</option>
               <option value={50}>50</option>
             </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-blue-500 transition-colors">
-              <ChevronRight size={14} className="rotate-90" />
-            </div>
           </div>
-          <span className="text-sm font-medium text-gray-500">entries</span>
+          <span className="text-sm font-bold text-gray-400">Total: {filteredData.length} records</span>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-          <div className="relative flex-1 sm:w-64">
+        <div className="flex items-center gap-4">
+          <div className="relative group">
             <input
               type="text"
               placeholder="Search driver or code..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-              className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm bg-gray-50/50 hover:bg-white hover:border-blue-300 focus:outline-none focus:ring-4 focus:ring-blue-100/50 transition-all"
+              className="w-full sm:w-64 border border-gray-200 rounded-xl pl-10 pr-4 py-2 text-sm bg-white hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all font-medium"
             />
-            <Filter size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Filter size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-500 transition-colors" />
           </div>
-          <div className="relative group">
+          <div className="relative">
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              className="appearance-none w-full border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm bg-gray-50/50 hover:bg-white hover:border-blue-300 focus:outline-none focus:ring-4 focus:ring-blue-100/50 transition-all cursor-pointer"
+              className="appearance-none border border-gray-200 rounded-xl px-4 py-2 pr-10 text-sm bg-white hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer font-bold"
             >
-              <option value="all">Status: Semua</option>
-              <option value="pending">Status: Pending</option>
-              <option value="approved">Status: Approved</option>
-              <option value="rejected">Status: Rejected</option>
+              <option value="all">Every Status</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
             </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-blue-500 transition-colors">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
               <ChevronRight size={14} className="rotate-90" />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="overflow-x-auto border-t border-gray-100">
+      <div className="overflow-x-auto">
         <table className="w-full text-left">
-          <thead className="bg-[#fcfcfa]/60 text-gray-500 text-[11px] font-bold uppercase tracking-wider">
+          <thead className="bg-[#fcfcfa]/80 text-gray-500 text-[11px] font-bold uppercase tracking-wider">
             <tr>
-              <th className="px-4 py-4.5">Driver Info</th>
-              <th className="px-4 py-4.5 text-center">Mitra Code</th>
-              <th className="px-4 py-4.5">Schedule In/Out</th>
-              <th className="px-4 py-4.5">Task Description</th>
-              <th className="px-4 py-4.5">Status</th>
-              <th className="px-4 py-4.5 text-right">Actions</th>
+              <th className="px-8 py-5">No</th>
+              <th className="px-8 py-5">Driver Info</th>
+              <th className="px-8 py-5 text-center">Mitra Code</th>
+              <th className="px-8 py-5">Schedule In/Out</th>
+              <th className="px-8 py-5">Status</th>
+              <th className="px-8 py-5 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-100 uppercase tracking-tight">
             {paginatedData.length > 0 ? paginatedData.map((ts, index) => (
               <motion.tr 
                 key={ts.id_timesheets_mitra}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="hover:bg-gray-50 group/row transition-all duration-300"
+                className="hover:bg-blue-50/30 group transition-all duration-300"
               >
-                <td className="px-4 py-4 whitespace-nowrap">
+                <td className="px-8 py-6 text-sm font-medium text-gray-400">
+                  {(currentPage - 1) * itemsPerPage + index + 1}
+                </td>
+                <td className="px-8 py-6 whitespace-nowrap">
                    <div className="flex items-center gap-4">
-                     <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100/50 flex items-center justify-center text-blue-600 font-bold text-xs ring-4 ring-transparent group-hover/row:ring-blue-50 transition-all">
-                       {ts.employee_id.substring(ts.employee_id.length - 2)}
+                     <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100/50 flex items-center justify-center text-blue-600 font-bold text-xs group-hover:scale-110 transition-all duration-500">
+                       {ts.employee_id.substring(0, 2)}
                      </div>
                      <div>
-                       <div className="font-bold text-gray-900 tracking-tight">{ts.employee_id}</div>
-                       <div className="text-[11px] text-gray-400 font-medium">Verified Driver</div>
+                       <div className="font-black text-gray-900 tracking-tight text-[15px]">{ts.employee_id}</div>
+                       <div className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-0.5">Verified Logistical Partner</div>
                      </div>
                    </div>
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-center">
-                  <span className="font-mono text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-md border border-gray-200">
+                <td className="px-8 py-6 whitespace-nowrap text-center">
+                  <span className="font-mono text-[13px] font-black text-gray-700 bg-gray-100/80 px-3 py-1.5 rounded-xl border border-gray-200/50">
                     {ts.code_customer}
                   </span>
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="flex items-center gap-6">
+                <td className="px-8 py-6 whitespace-nowrap">
+                  <div className="flex items-center gap-8">
                     <div className="space-y-1">
-                       <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-tighter">Check In</span>
-                       <div className="flex items-center gap-1.5">
-                         <span className="font-mono font-bold text-gray-900 text-sm">{ts.time_entry.split(' ')[1]}</span>
-                         <span className="text-[10px] font-bold text-blue-500/80 italic">{ts.km_entry}km</span>
+                       <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Check Entry</span>
+                       <div className="flex items-center gap-2">
+                         <span className="font-mono font-black text-gray-900 text-[14px]">{ts.time_entry.split(' ')[1]}</span>
+                         <span className="text-[10px] font-black text-blue-600/60 bg-blue-50 px-1.5 py-0.5 rounded-lg border border-blue-100/50">{ts.km_entry}km</span>
                        </div>
                     </div>
-                    <div className="h-8 w-px bg-gray-100" />
+                    <div className="h-10 w-px bg-gray-100" />
                     <div className="space-y-1">
-                       <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-tighter">Check Out</span>
-                       <div className="flex items-center gap-1.5">
-                         <span className="font-mono font-bold text-gray-900 text-sm">{ts.time_exit.split(' ')[1]}</span>
-                         <span className="text-[10px] font-bold text-indigo-500/80 italic">{ts.km_exit}km</span>
+                       <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Check Exit</span>
+                       <div className="flex items-center gap-2">
+                         <span className="font-mono font-black text-gray-900 text-[14px]">{ts.time_exit.split(' ')[1]}</span>
+                         <span className="text-[10px] font-black text-indigo-600/60 bg-indigo-50 px-1.5 py-0.5 rounded-lg border border-indigo-100/50">{ts.km_exit}km</span>
                        </div>
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-4 min-w-[200px]">
-                  <p className="text-gray-600 text-sm leading-relaxed line-clamp-1 group-hover/row:line-clamp-none transition-all">
-                    {ts.task || 'Routine Logistical Support'}
-                  </p>
-                </td>
-                <td className="px-4 py-4">{getStatusBadge(ts.status_approved)}</td>
-                <td className="px-4 py-4 text-right whitespace-nowrap">
+                <td className="px-8 py-6">{getStatusBadge(ts.status_approved)}</td>
+                <td className="px-8 py-6 text-right whitespace-nowrap">
                   <div className="flex justify-end gap-2">
                     <button 
                       onClick={() => setSelectedTimesheet(ts)}
-                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                      className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-white rounded-xl transition-all shadow-sm ring-1 ring-transparent hover:ring-blue-100"
                       title="View Details"
                     >
                       <Eye size={18} />
                     </button>
                     <button 
-                      onClick={() => {
-                        setSelectedTimesheet(ts);
-                        // Future: trigger edit mode
-                        Swal.fire({
-                          title: 'Edit Mode',
-                          text: 'Direct editing feature is being initialized.',
-                          icon: 'info',
-                          timer: 2000,
-                          showConfirmButton: false,
-                          customClass: { popup: 'rounded-[32px]' }
-                        });
-                      }}
-                      className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                      onClick={() => handleEditClick(ts)}
+                      className="p-2.5 text-gray-400 hover:text-indigo-600 hover:bg-white rounded-xl transition-all shadow-sm ring-1 ring-transparent hover:ring-indigo-100"
                       title="Edit Record"
                     >
                       <Pencil size={18} />
                     </button>
                     {ts.status_approved === 0 ? (
-                      <>
-                        <button 
-                          onClick={() => handleApprove(ts.id_timesheets_mitra, -2)} // Assuming -2 is Revision
-                          className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
-                          title="Request Revision"
+                      <div className="flex items-center gap-1.5 ml-2 border-l border-gray-100 pl-3">
+                         <button 
+                          onClick={() => handleApprove(ts.id_timesheets_mitra, -2)}
+                          className="p-2.5 text-gray-400 hover:text-amber-600 hover:bg-white rounded-xl transition-all shadow-sm"
+                          title="Revision"
                         >
                           <History size={18} />
                         </button>
                         <button 
-                          onClick={() => handleApprove(ts.id_timesheets_mitra, -1)}
-                          className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
-                          title="Reject"
-                        >
-                          <XCircle size={18} />
-                        </button>
-                        <button 
                           onClick={() => handleApprove(ts.id_timesheets_mitra, 1)}
-                          className="bg-[#1a1f2e] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 transition-all shadow-lg active:scale-95 flex items-center gap-2 ml-1"
+                          className="h-10 w-10 bg-[#1a1f2e] text-white rounded-xl flex items-center justify-center hover:bg-blue-600 transition-all shadow-lg active:scale-90"
+                          title="Approve Now"
                         >
-                          <CheckCircle size={14} />
-                          Approve
+                          <CheckCircle size={18} />
                         </button>
-                      </>
+                      </div>
                     ) : (
-                      <div className="flex items-center gap-2 px-3 py-1 bg-gray-50 rounded-lg border border-gray-100">
+                      <div className="h-10 px-3 flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl">
                         {ts.status_approved === 1 ? (
                           <CheckCircle size={14} className="text-emerald-500" />
                         ) : (
                           <XCircle size={14} className="text-rose-500" />
                         )}
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Finalized</span>
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Finalized</span>
                       </div>
                     )}
                   </div>
@@ -377,12 +395,15 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
               </motion.tr>
             )) : (
               <tr>
-                <td colSpan={6} className="px-6 py-20 text-center">
-                  <div className="flex flex-col items-center gap-4 text-gray-400">
-                    <div className="p-4 bg-gray-50 rounded-2xl">
+                <td colSpan={7} className="px-8 py-24 text-center">
+                  <div className="flex flex-col items-center gap-4 text-gray-300">
+                    <div className="h-20 w-20 rounded-[28px] bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">
                       <Filter size={32} />
                     </div>
-                    <p className="font-medium">No results found matching your criteria</p>
+                    <div className="max-w-xs">
+                       <p className="font-black text-gray-900 uppercase tracking-widest text-[13px]">No Active Matches</p>
+                       <p className="text-xs font-medium text-gray-400 mt-1">Adjust your filters or search query to find relevant timesheet logs.</p>
+                    </div>
                   </div>
                 </td>
               </tr>
@@ -391,44 +412,37 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
         </table>
       </div>
 
-      <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between bg-[#fcfcfa]/30 gap-6">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-          Page <span className="text-gray-900 font-bold">{currentPage}</span> of <span className="text-gray-900 font-bold">{totalPages || 1}</span>
-          <span className="h-1 w-1 rounded-full bg-gray-300 mx-1" />
-          Total <span className="text-gray-900 font-bold">{filteredData.length}</span> records
-        </p>
-        <div className="flex items-center gap-3">
-          <button 
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(p => p - 1)}
-            className="px-5 py-2.5 border border-gray-200 bg-white rounded-xl text-sm font-bold text-gray-700 disabled:opacity-30 hover:bg-gray-50 transition-all shadow-sm active:scale-95"
-          >
-            Previous
-          </button>
-          
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-gray-100 rounded-2xl border border-gray-200/50">
-            {[...Array(totalPages)].map((_, i) => (
-              <button 
-                key={i}
-                onClick={() => setCurrentPage(i + 1)}
-                className={`w-9 h-9 rounded-xl text-xs font-bold transition-all duration-300 ${currentPage === i + 1 ? 'bg-white text-blue-600 shadow-md scale-110' : 'text-gray-500 hover:bg-white/50'}`}
-              >
-                {i + 1}
-              </button>
-            ))}
-          </div>
-
-          <button 
-            disabled={currentPage === totalPages || totalPages === 0}
-            onClick={() => setCurrentPage(p => p + 1)}
-            className="px-5 py-2.5 border border-gray-200 bg-white rounded-xl text-sm font-bold text-gray-700 disabled:opacity-30 hover:bg-gray-50 transition-all shadow-sm active:scale-95"
-          >
-            Next
-          </button>
+      {/* Standardized Pagination Footer */}
+      <div className="px-8 py-5 border-t border-gray-100 flex items-center justify-between bg-white text-sm">
+        <button 
+          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+          disabled={currentPage === 1}
+          className="px-4 py-2 border border-gray-100 rounded-xl font-bold font-sans text-[13px] text-gray-500 hover:bg-gray-50 disabled:opacity-30 flex items-center gap-2 transition-all shadow-sm uppercase tracking-widest"
+        >
+          <ChevronLeft size={16} /> Prev
+        </button>
+        <div className="flex items-center gap-2">
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentPage(i + 1)}
+              className={`h-9 w-9 rounded-xl text-xs font-black transition-all ${currentPage === i + 1 ? 'bg-[#1a1f2e] text-white shadow-xl shadow-gray-200 scale-105' : 'text-gray-400 hover:bg-gray-50'}`}
+            >
+              {i + 1}
+            </button>
+          ))}
         </div>
+        <button 
+          onClick={() => setCurrentPage(p => Math.min(totalPages || 1, p + 1))}
+          disabled={currentPage === totalPages || totalPages === 0}
+          className="px-4 py-2 border border-gray-100 rounded-xl font-bold font-sans text-[13px] text-gray-500 hover:bg-gray-50 disabled:opacity-30 flex items-center gap-2 transition-all shadow-sm uppercase tracking-widest"
+        >
+          Next <ChevronRight size={16} />
+        </button>
       </div>
     </div>
   );
+
   
   const renderDetailModal = () => {
     if (!selectedTimesheet) return null;
@@ -441,7 +455,10 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setSelectedTimesheet(null)}
+            onClick={() => {
+              setSelectedTimesheet(null);
+              setIsEditing(false);
+            }}
             className="absolute inset-0 bg-gray-900/40 backdrop-blur-md"
           />
           <motion.div 
@@ -454,15 +471,18 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
             <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-100">
-                  <FileCheck size={24} />
+                  {isEditing ? <Pencil size={24} /> : <FileCheck size={24} />}
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-gray-900 tracking-tight">Timesheet Log Detail</h3>
+                  <h3 className="text-xl font-black text-gray-900 tracking-tight">{isEditing ? 'Revise Logistical Record' : 'Timesheet Log Detail'}</h3>
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-0.5">ID: {ts.id_timesheets_mitra} • {ts.employee_id}</p>
                 </div>
               </div>
               <button 
-                onClick={() => setSelectedTimesheet(null)}
+                onClick={() => {
+                  setSelectedTimesheet(null);
+                  setIsEditing(false);
+                }}
                 className="p-3 bg-gray-50 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-2xl transition-all"
               >
                 <X size={20} />
@@ -471,7 +491,168 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
 
             {/* Modal Body */}
             <div className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar">
-              {/* Status Banner */}
+              {isEditing ? (
+                <form id="edit-timesheet-form" onSubmit={handleUpdateTimesheet} className="space-y-10">
+                  {/* Grid Groups */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    {/* Operational Group */}
+                    <div className="space-y-6">
+                      <h4 className="text-[11px] font-black text-blue-600 uppercase tracking-[0.25em] flex items-center gap-2 px-1">
+                        <ShieldCheck size={12} /> Operational Core
+                      </h4>
+                      <div className="space-y-4 p-6 bg-gray-50/50 border border-gray-100 rounded-[32px]">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Employee ID</label>
+                          <input 
+                            type="text" 
+                            required
+                            value={editFormData.employee_id || ''}
+                            onChange={e => setEditFormData({...editFormData, employee_id: e.target.value})}
+                            className="w-full px-5 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-blue-100 focus:border-blue-300 outline-none transition-all shadow-sm"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Mitra Customer Code</label>
+                          <input 
+                            type="text" 
+                            required
+                            value={editFormData.code_customer || ''}
+                            onChange={e => setEditFormData({...editFormData, code_customer: e.target.value})}
+                            className="w-full px-5 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-blue-100 focus:border-blue-300 outline-none transition-all shadow-sm"
+                          />
+                        </div>
+                      </div>
+
+                      <h4 className="text-[11px] font-black text-blue-600 uppercase tracking-[0.25em] flex items-center gap-2 px-1">
+                        <Truck size={12} /> Service Tiers
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-3 ${editFormData.is_premium === 1 ? 'bg-blue-50/50 border-blue-500' : 'bg-white border-gray-100 opacity-60'}`} onClick={() => setEditFormData({...editFormData, is_premium: editFormData.is_premium === 1 ? 0 : 1})}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] font-black uppercase tracking-widest">Premium</span>
+                            <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${editFormData.is_premium === 1 ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300'}`}>
+                              {editFormData.is_premium === 1 && <CheckCircle size={10} />}
+                            </div>
+                          </div>
+                          <input 
+                            placeholder="Pkg Name"
+                            value={editFormData.premium_name || ''}
+                            onClick={e => e.stopPropagation()}
+                            onChange={e => setEditFormData({...editFormData, premium_name: e.target.value, is_premium: 1})}
+                            className="bg-transparent border-none p-0 text-xs font-bold focus:ring-0 placeholder:text-gray-300"
+                          />
+                        </div>
+                        <div className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-3 ${editFormData.is_vip === 1 ? 'bg-amber-50/50 border-amber-500' : 'bg-white border-gray-100 opacity-60'}`} onClick={() => setEditFormData({...editFormData, is_vip: editFormData.is_vip === 1 ? 0 : 1})}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] font-black uppercase tracking-widest">VIP dedicated</span>
+                            <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${editFormData.is_vip === 1 ? 'bg-amber-600 border-amber-600 text-white' : 'border-gray-300'}`}>
+                              {editFormData.is_vip === 1 && <CheckCircle size={10} />}
+                            </div>
+                          </div>
+                          <input 
+                            placeholder="Unit Name"
+                            value={editFormData.vip_name || ''}
+                            onClick={e => e.stopPropagation()}
+                            onChange={e => setEditFormData({...editFormData, vip_name: e.target.value, is_vip: 1})}
+                            className="bg-transparent border-none p-0 text-xs font-bold focus:ring-0 placeholder:text-gray-300"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Logistical Group */}
+                    <div className="space-y-6">
+                      <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.25em] flex items-center gap-2 px-1">
+                        <MapPin size={12} /> Logistical Metrics
+                      </h4>
+                      <div className="p-8 bg-indigo-50/30 border border-indigo-100/50 rounded-[32px] space-y-8">
+                        <div className="grid grid-cols-2 gap-8 relative">
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 bg-white border border-indigo-100 rounded-full flex items-center justify-center text-indigo-300 z-10 hidden md:flex">
+                            <ChevronRight size={14} />
+                          </div>
+                          <div className="space-y-4">
+                            <div className="space-y-1.5">
+                              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Check-In Time</label>
+                              <input 
+                                type="text" 
+                                value={editFormData.time_entry || ''}
+                                onChange={e => setEditFormData({...editFormData, time_entry: e.target.value})}
+                                className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-100 outline-none"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Entry KM</label>
+                              <input 
+                                type="text" 
+                                value={editFormData.km_entry || ''}
+                                onChange={e => setEditFormData({...editFormData, km_entry: e.target.value})}
+                                className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-100 outline-none"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-4">
+                            <div className="space-y-1.5">
+                              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Check-Out Time</label>
+                              <input 
+                                type="text" 
+                                value={editFormData.time_exit || ''}
+                                onChange={e => setEditFormData({...editFormData, time_exit: e.target.value})}
+                                className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-100 outline-none"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Exit KM</label>
+                              <input 
+                                type="text" 
+                                value={editFormData.km_exit || ''}
+                                onChange={e => setEditFormData({...editFormData, km_exit: e.target.value})}
+                                className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-100 outline-none"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Mission Task Description</label>
+                          <textarea 
+                            rows={3}
+                            value={editFormData.task || ''}
+                            onChange={e => setEditFormData({...editFormData, task: e.target.value})}
+                            className="w-full px-5 py-4 bg-white border border-gray-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 outline-none transition-all shadow-sm resize-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Geolocation & Media Group */}
+                  <div className="space-y-6">
+                    <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.25em] flex items-center gap-2 px-1">
+                      <Map size={12} /> Geospacial & Evidence
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                       <div className="space-y-3 bg-white p-5 border border-gray-100 rounded-3xl shadow-sm">
+                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Lat (Entry)</p>
+                          <input value={editFormData.lat_masuk || ''} onChange={e => setEditFormData({...editFormData, lat_masuk: e.target.value})} className="w-full p-0 border-none text-[13px] font-bold focus:ring-0" />
+                       </div>
+                       <div className="space-y-3 bg-white p-5 border border-gray-100 rounded-3xl shadow-sm">
+                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Long (Entry)</p>
+                          <input value={editFormData.long_masuk || ''} onChange={e => setEditFormData({...editFormData, long_masuk: e.target.value})} className="w-full p-0 border-none text-[13px] font-bold focus:ring-0" />
+                       </div>
+                       <div className="space-y-3 bg-white p-5 border border-gray-100 rounded-3xl shadow-sm">
+                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Lat (Exit)</p>
+                          <input value={editFormData.lat_keluar || ''} onChange={e => setEditFormData({...editFormData, lat_keluar: e.target.value})} className="w-full p-0 border-none text-[13px] font-bold focus:ring-0" />
+                       </div>
+                       <div className="space-y-3 bg-white p-5 border border-gray-100 rounded-3xl shadow-sm">
+                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Long (Exit)</p>
+                          <input value={editFormData.long_keluar || ''} onChange={e => setEditFormData({...editFormData, long_keluar: e.target.value})} className="w-full p-0 border-none text-[13px] font-bold focus:ring-0" />
+                       </div>
+                    </div>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  {/* Status Banner */}
               <div className={`p-6 rounded-3xl border flex items-center justify-between ${
                 ts.status_approved === 1 ? 'bg-emerald-50 border-emerald-100' : 
                 ts.status_approved === -1 ? 'bg-rose-50 border-rose-100' : 
@@ -636,40 +817,55 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                   </div>
                 </div>
               </div>
-            </div>
+            </>
+          )}
+        </div>
 
             {/* Modal Actions */}
-            {ts.status_approved === 0 && (
-              <div className="p-8 border-t border-gray-100 bg-[#fcfcfc] flex items-center justify-end gap-4 shrink-0">
-                <button 
-                  onClick={() => {
-                    Swal.fire({
-                      title: 'Edit Mode',
-                      text: 'Data correction interface is opening...',
-                      icon: 'info',
-                      timer: 1500,
-                      showConfirmButton: false,
-                      customClass: { popup: 'rounded-[32px]' }
-                    });
-                  }}
-                  className="px-6 py-4 bg-gray-100 text-gray-700 rounded-3xl text-xs font-black shadow-sm hover:bg-gray-200 transition-all active:scale-95 uppercase tracking-widest flex items-center gap-2"
-                >
-                  <Pencil size={16} /> Edit Data
-                </button>
-                <button 
-                  onClick={() => { handleApprove(ts.id_timesheets_mitra, -1); setSelectedTimesheet(null); }}
-                  className="px-8 py-4 bg-white border border-gray-200 text-rose-600 rounded-3xl text-xs font-black shadow-sm hover:bg-rose-50 hover:border-rose-100 transition-all active:scale-95 uppercase tracking-widest"
-                >
-                  Reject Record
-                </button>
-                <button 
-                  onClick={() => { handleApprove(ts.id_timesheets_mitra, 1); setSelectedTimesheet(null); }}
-                  className="px-12 py-4 bg-blue-600 text-white rounded-3xl text-xs font-black shadow-xl shadow-blue-200 hover:bg-[#1a1f2e] transition-all hover:-translate-y-0.5 active:scale-95 uppercase tracking-[0.1em] flex items-center gap-3"
-                >
-                  <CheckCircle size={18} /> Approve Log
-                </button>
-              </div>
-            )}
+            <div className="p-8 border-t border-gray-100 bg-[#fcfcfc] flex items-center justify-end gap-4 shrink-0">
+              {isEditing ? (
+                <>
+                  <button 
+                    onClick={() => setIsEditing(false)}
+                    className="px-8 py-4 bg-white border border-gray-200 text-gray-500 rounded-3xl text-xs font-black shadow-sm hover:bg-gray-50 transition-all active:scale-95 uppercase tracking-widest"
+                  >
+                    Discard Changes
+                  </button>
+                  <button 
+                    form="edit-timesheet-form"
+                    type="submit"
+                    className="px-12 py-4 bg-[#1a1f2e] text-white rounded-3xl text-xs font-black shadow-xl shadow-gray-100 hover:bg-blue-600 transition-all hover:-translate-y-0.5 active:scale-95 uppercase tracking-[0.1em] flex items-center gap-3"
+                  >
+                    <CheckCircle size={18} /> Synchronize Data
+                  </button>
+                </>
+              ) : (
+                <>
+                  {ts.status_approved === 0 && (
+                    <>
+                      <button 
+                        onClick={() => handleEditClick(ts)}
+                        className="px-6 py-4 bg-gray-100 text-gray-700 rounded-3xl text-xs font-black shadow-sm hover:bg-gray-200 transition-all active:scale-95 uppercase tracking-widest flex items-center gap-2"
+                      >
+                        <Pencil size={16} /> Edit Data
+                      </button>
+                      <button 
+                        onClick={() => { handleApprove(ts.id_timesheets_mitra, -1); setSelectedTimesheet(null); }}
+                        className="px-8 py-4 bg-white border border-gray-200 text-rose-600 rounded-3xl text-xs font-black shadow-sm hover:bg-rose-50 hover:border-rose-100 transition-all active:scale-95 uppercase tracking-widest"
+                      >
+                        Reject Record
+                      </button>
+                      <button 
+                        onClick={() => { handleApprove(ts.id_timesheets_mitra, 1); setSelectedTimesheet(null); }}
+                        className="px-12 py-4 bg-blue-600 text-white rounded-3xl text-xs font-black shadow-xl shadow-blue-200 hover:bg-[#1a1f2e] transition-all hover:-translate-y-0.5 active:scale-95 uppercase tracking-[0.1em] flex items-center gap-3"
+                      >
+                        <CheckCircle size={18} /> Approve Log
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
           </motion.div>
         </div>
       </AnimatePresence>
@@ -900,10 +1096,24 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                 <div className="bg-white border border-gray-200 rounded-[32px] overflow-hidden shadow-sm ring-1 ring-black/[0.02]">
                   <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-[#fcfcfa]/50">
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-gray-400">Total Drivers:</span>
-                      <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-black">{drivers.length}</span>
+                      <span className="text-sm font-bold text-gray-400">Showing {Math.min(drivers.length, (driverPage - 1) * driverItemsPerPage + 1)}-{Math.min(drivers.length, driverPage * driverItemsPerPage)} of {drivers.length} Drivers</span>
                     </div>
                     <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2 pr-4 border-r border-gray-100">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Per Page</span>
+                        <select 
+                          value={driverItemsPerPage}
+                          onChange={(e) => {
+                            setDriverItemsPerPage(Number(e.target.value));
+                            setDriverPage(1);
+                          }}
+                          className="bg-gray-50 border-none text-xs font-bold rounded-lg px-2 py-1 focus:ring-0"
+                        >
+                          <option value="5">5</option>
+                          <option value="10">10</option>
+                          <option value="25">25</option>
+                        </select>
+                      </div>
                       <input 
                         type="text" 
                         placeholder="Search drivers..."
@@ -928,7 +1138,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {drivers.map((driver, index) => (
+                        {drivers.slice((driverPage - 1) * driverItemsPerPage, driverPage * driverItemsPerPage).map((driver, index) => (
                           <motion.tr 
                             key={driver.id}
                             initial={{ opacity: 0, x: -10 }}
@@ -936,7 +1146,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                             transition={{ delay: index * 0.05 }}
                             className="hover:bg-blue-50/30 group transition-all duration-300"
                           >
-                            <td className="px-8 py-6 text-sm font-medium text-gray-400">{index + 1}</td>
+                            <td className="px-8 py-6 text-sm font-medium text-gray-400">{(driverPage - 1) * driverItemsPerPage + index + 1}</td>
                             <td className="px-8 py-6 text-sm font-bold text-gray-900">{driver.id}</td>
                             <td className="px-8 py-6">
                               <div className="relative group/photo">
@@ -964,7 +1174,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                               </div>
                             </td>
                             <td className="px-8 py-6 text-right">
-                              <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                              <div className="flex justify-end gap-2">
                                 <button className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-white rounded-xl transition-all shadow-sm">
                                   <Eye size={18} />
                                 </button>
@@ -977,6 +1187,35 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                         ))}
                       </tbody>
                     </table>
+                  </div>
+
+                  {/* Standardized Driver Pagination Footer */}
+                  <div className="px-8 py-5 border-t border-gray-100 flex items-center justify-between bg-white text-sm">
+                    <button 
+                      onClick={() => setDriverPage(p => Math.max(1, p - 1))}
+                      disabled={driverPage === 1}
+                      className="px-4 py-2 border border-gray-100 rounded-xl font-bold font-sans text-[13px] text-gray-500 hover:bg-gray-50 disabled:opacity-30 flex items-center gap-2 transition-all shadow-sm uppercase tracking-widest"
+                    >
+                      <ChevronLeft size={16} /> Prev
+                    </button>
+                    <div className="flex items-center gap-2">
+                      {Array.from({ length: Math.ceil(drivers.length / driverItemsPerPage) }).map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setDriverPage(i + 1)}
+                          className={`h-9 w-9 rounded-xl text-xs font-black transition-all ${driverPage === i + 1 ? 'bg-[#1a1f2e] text-white shadow-xl shadow-gray-200 scale-105' : 'text-gray-400 hover:bg-gray-50'}`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
+                    </div>
+                    <button 
+                      onClick={() => setDriverPage(p => Math.min(Math.ceil(drivers.length / driverItemsPerPage) || 1, p + 1))}
+                      disabled={driverPage === Math.ceil(drivers.length / driverItemsPerPage)}
+                      className="px-4 py-2 border border-gray-100 rounded-xl font-bold font-sans text-[13px] text-gray-500 hover:bg-gray-50 disabled:opacity-30 flex items-center gap-2 transition-all shadow-sm uppercase tracking-widest"
+                    >
+                      Next <ChevronRight size={16} />
+                    </button>
                   </div>
                 </div>
               </div>

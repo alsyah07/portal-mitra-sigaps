@@ -43,6 +43,17 @@ async function startServer() {
       km_exit: '12150',
       status_approved: 0, // Pending
       task: 'Delivery to Site A',
+      foto_km_in: null,
+      foto_km_out: null,
+      lat_masuk: '-6.200000',
+      long_masuk: '106.816666',
+      lat_keluar: '-6.200000',
+      long_keluar: '106.816666',
+      is_premium: 0,
+      premium_name: '',
+      is_vip: 0,
+      vip_name: '',
+      is_task: 1,
       created_at: new Date().toISOString(),
     },
     {
@@ -55,6 +66,17 @@ async function startServer() {
       km_exit: '15620',
       status_approved: 1, // Approved
       task: 'Regional Transfer',
+      foto_km_in: null,
+      foto_km_out: null,
+      lat_masuk: '-6.208800',
+      long_masuk: '106.845600',
+      lat_keluar: '-6.209800',
+      long_keluar: '106.845900',
+      is_premium: 1,
+      premium_name: 'Fast Track',
+      is_vip: 0,
+      vip_name: '',
+      is_task: 1,
       created_at: new Date(Date.now() - 86400000).toISOString(),
     }
   ];
@@ -74,6 +96,19 @@ async function startServer() {
 
   app.get('/api/timesheets', (req, res) => {
     res.json(timesheets);
+  });
+
+  app.put('/api/timesheets/:id', (req, res) => {
+    const id = parseInt(req.params.id);
+    const updatedData = req.body;
+    const index = timesheets.findIndex(t => t.id_timesheets_mitra === id);
+
+    if (index !== -1) {
+      timesheets[index] = { ...timesheets[index], ...updatedData };
+      res.json({ success: true, data: timesheets[index] });
+    } else {
+      res.status(404).json({ success: false, message: 'Timesheet not found' });
+    }
   });
 
   app.post('/api/timesheets/approve', (req, res) => {
