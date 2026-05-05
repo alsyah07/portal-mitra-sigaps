@@ -182,6 +182,16 @@ export default function ApproveDriver() {
     }
   };
 
+  const getDisplayTimeEntry = (ts: Timesheet) => {
+    if (ts.is_premium === 1 || ts.is_vip === 1) return '07:00';
+    return ts.time_entry?.split(' ')[1]?.substring(0, 5) || '-';
+  };
+
+  const getDisplayTimeExit = (ts: Timesheet) => {
+    if (ts.is_premium === 1 || ts.is_vip === 1) return '16:00';
+    return ts.time_exit?.split(' ')[1]?.substring(0, 5) || '-';
+  };
+
   const filteredData = timesheets.filter(ts => {
     const searchLow = search.toLowerCase();
     const matchesSearch = 
@@ -283,7 +293,16 @@ export default function ApproveDriver() {
                         <Truck size={12} /> Service Tiers
                       </h4>
                       <div className="grid grid-cols-2 gap-4">
-                        <div className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-3 ${editFormData.is_premium === 1 ? 'bg-blue-50/50 border-blue-500' : 'bg-white border-gray-100 opacity-60'}`} onClick={() => setEditFormData({...editFormData, is_premium: editFormData.is_premium === 1 ? 0 : 1})}>
+                        <div className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-3 ${editFormData.is_premium === 1 ? 'bg-blue-50/50 border-blue-500' : 'bg-white border-gray-100 opacity-60'}`} onClick={() => {
+                          const isPremium = editFormData.is_premium === 1 ? 0 : 1;
+                          let newEntry = editFormData.time_entry;
+                          let newExit = editFormData.time_exit;
+                          if (isPremium) {
+                            if (newEntry) newEntry = newEntry.split(' ')[0] + ' 07:00:00';
+                            if (newExit) newExit = newExit.split(' ')[0] + ' 16:00:00';
+                          }
+                          setEditFormData({...editFormData, is_premium: isPremium, is_vip: 0, time_entry: newEntry, time_exit: newExit});
+                        }}>
                           <div className="flex items-center justify-between">
                             <span className="text-[9px] font-black uppercase tracking-widest">Premium</span>
                             <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${editFormData.is_premium === 1 ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300'}`}>
@@ -298,7 +317,16 @@ export default function ApproveDriver() {
                             className="bg-transparent border-none p-0 text-xs font-bold focus:ring-0 placeholder:text-gray-300"
                           />
                         </div>
-                        <div className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-3 ${editFormData.is_vip === 1 ? 'bg-amber-50/50 border-amber-500' : 'bg-white border-gray-100 opacity-60'}`} onClick={() => setEditFormData({...editFormData, is_vip: editFormData.is_vip === 1 ? 0 : 1})}>
+                        <div className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-3 ${editFormData.is_vip === 1 ? 'bg-amber-50/50 border-amber-500' : 'bg-white border-gray-100 opacity-60'}`} onClick={() => {
+                          const isVip = editFormData.is_vip === 1 ? 0 : 1;
+                          let newEntry = editFormData.time_entry;
+                          let newExit = editFormData.time_exit;
+                          if (isVip) {
+                            if (newEntry) newEntry = newEntry.split(' ')[0] + ' 07:00:00';
+                            if (newExit) newExit = newExit.split(' ')[0] + ' 16:00:00';
+                          }
+                          setEditFormData({...editFormData, is_vip: isVip, is_premium: 0, time_entry: newEntry, time_exit: newExit});
+                        }}>
                           <div className="flex items-center justify-between">
                             <span className="text-[9px] font-black uppercase tracking-widest">VIP dedicated</span>
                             <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${editFormData.is_vip === 1 ? 'bg-amber-600 border-amber-600 text-white' : 'border-gray-300'}`}>
@@ -321,6 +349,37 @@ export default function ApproveDriver() {
                         <MapPin size={12} /> Logistical Metrics
                       </h4>
                       <div className="p-8 bg-indigo-50/30 border border-indigo-100/50 rounded-[32px] space-y-8">
+                        <div className="bg-white p-4 rounded-2xl border border-indigo-100 flex items-center justify-between shadow-sm">
+                          <div>
+                            <span className="block text-[10px] font-black text-gray-900 uppercase tracking-widest">Time Policy Setup</span>
+                            <span className="block text-[9px] text-gray-500 font-bold mt-1">Override to fixed schedule (07:00 - 16:00)</span>
+                          </div>
+                          <div className="flex bg-gray-50 p-1.5 rounded-xl border border-gray-100">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditFormData({...editFormData, time_entry: selectedTimesheet?.time_entry, time_exit: selectedTimesheet?.time_exit});
+                              }}
+                              className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${!editFormData.time_entry?.includes('07:00:00') ? 'bg-white shadow-sm text-indigo-600 ring-1 ring-indigo-100' : 'text-gray-400 hover:text-gray-600'}`}
+                            >
+                              Standard
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                let newEntry = editFormData.time_entry;
+                                let newExit = editFormData.time_exit;
+                                if (newEntry) newEntry = newEntry.split(' ')[0] + ' 07:00:00';
+                                if (newExit) newExit = newExit.split(' ')[0] + ' 16:00:00';
+                                setEditFormData({...editFormData, time_entry: newEntry, time_exit: newExit});
+                              }}
+                              className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${editFormData.time_entry?.includes('07:00:00') && editFormData.time_exit?.includes('16:00:00') ? 'bg-indigo-600 shadow-md text-white' : 'text-gray-400 hover:text-gray-600'}`}
+                            >
+                              Fixed Schedule
+                            </button>
+                          </div>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-8 relative">
                           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 bg-white border border-indigo-100 rounded-full flex items-center justify-center text-indigo-300 z-10 hidden md:flex">
                             <ChevronRight size={14} />
@@ -329,9 +388,12 @@ export default function ApproveDriver() {
                             <div className="space-y-1.5">
                               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Check-In Time</label>
                               <input 
-                                type="text" 
-                                value={editFormData.time_entry || ''}
-                                onChange={e => setEditFormData({...editFormData, time_entry: e.target.value})}
+                                type="time" 
+                                value={editFormData.time_entry?.split(' ')[1]?.substring(0, 5) || ''}
+                                onChange={e => {
+                                  const datePart = editFormData.time_entry?.split(' ')[0] || new Date().toISOString().split('T')[0];
+                                  setEditFormData({...editFormData, time_entry: `${datePart} ${e.target.value}:00`});
+                                }}
                                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-100 outline-none"
                               />
                             </div>
@@ -349,9 +411,12 @@ export default function ApproveDriver() {
                             <div className="space-y-1.5">
                               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Check-Out Time</label>
                               <input 
-                                type="text" 
-                                value={editFormData.time_exit || ''}
-                                onChange={e => setEditFormData({...editFormData, time_exit: e.target.value})}
+                                type="time" 
+                                value={editFormData.time_exit?.split(' ')[1]?.substring(0, 5) || ''}
+                                onChange={e => {
+                                  const datePart = editFormData.time_exit?.split(' ')[0] || new Date().toISOString().split('T')[0];
+                                  setEditFormData({...editFormData, time_exit: `${datePart} ${e.target.value}:00`});
+                                }}
                                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-100 outline-none"
                               />
                             </div>
@@ -430,7 +495,7 @@ export default function ApproveDriver() {
                         <div className="space-y-4">
                           <div>
                             <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Check-In</p>
-                            <p className="font-mono text-xl font-black text-gray-900 tracking-tighter">{ts.time_entry?.split(' ')[1] || '-'}</p>
+                            <p className="font-mono text-xl font-black text-gray-900 tracking-tighter">{getDisplayTimeEntry(ts)}</p>
                             <p className="text-[11px] font-bold text-gray-500 mt-0.5">{ts.time_entry?.split(' ')[0] || '-'}</p>
                           </div>
                           <div>
@@ -441,7 +506,7 @@ export default function ApproveDriver() {
                         <div className="space-y-4">
                           <div>
                             <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Check-Out</p>
-                            <p className="font-mono text-xl font-black text-gray-900 tracking-tighter">{ts.time_exit?.split(' ')[1] || '-'}</p>
+                            <p className="font-mono text-xl font-black text-gray-900 tracking-tighter">{getDisplayTimeExit(ts)}</p>
                             <p className="text-[11px] font-bold text-gray-500 mt-0.5">{ts.time_exit?.split(' ')[0] || '-'}</p>
                           </div>
                           <div>
@@ -648,7 +713,7 @@ export default function ApproveDriver() {
                         <div className="space-y-1">
                            <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Check Entry</span>
                            <div className="flex items-center gap-2">
-                             <span className="font-mono font-black text-gray-900 text-[14px]">{ts.time_entry?.split(' ')[1] || '-'}</span>
+                             <span className="font-mono font-black text-gray-900 text-[14px]">{getDisplayTimeEntry(ts)}</span>
                              <span className="text-[10px] font-black text-blue-600/60 bg-blue-50 px-1.5 py-0.5 rounded-lg border border-blue-100/50">{ts.km_entry ? Number(ts.km_entry).toLocaleString('en-US') : '0'} KM</span>
                            </div>
                         </div>
@@ -656,7 +721,7 @@ export default function ApproveDriver() {
                         <div className="space-y-1">
                            <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Check Exit</span>
                            <div className="flex items-center gap-2">
-                             <span className="font-mono font-black text-gray-900 text-[14px]">{ts.time_exit?.split(' ')[1] || '-'}</span>
+                             <span className="font-mono font-black text-gray-900 text-[14px]">{getDisplayTimeExit(ts)}</span>
                              <span className="text-[10px] font-black text-indigo-600/60 bg-indigo-50 px-1.5 py-0.5 rounded-lg border border-indigo-100/50">{ts.km_exit ? Number(ts.km_exit).toLocaleString('en-US') : '0'} KM</span>
                            </div>
                         </div>

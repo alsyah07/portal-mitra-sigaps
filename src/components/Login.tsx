@@ -4,7 +4,7 @@ import { LogIn, ShieldCheck, Mail, Lock, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface LoginProps {
-  onLogin: (user: User) => void;
+  onLogin: (user: User, token: string) => void;
 }
 
 export default function Login({ onLogin }: LoginProps) {
@@ -19,7 +19,7 @@ export default function Login({ onLogin }: LoginProps) {
     setError('');
 
     try {
-      const response = await fetch('/api/login', {
+      const response = await fetch(`${import.meta.env.VITE_URL_API}login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -27,8 +27,8 @@ export default function Login({ onLogin }: LoginProps) {
 
       const data = await response.json();
 
-      if (data.success) {
-        onLogin(data.user);
+      if (data.status === 'success') {
+        onLogin(data.data, data.token);
       } else {
         setError(data.message || 'Login failed');
       }
