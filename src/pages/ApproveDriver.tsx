@@ -18,14 +18,16 @@ import {
   Truck,
   X
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function ApproveDriver() {
+  const { user } = useAuth();
   const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Data Table State
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('pending');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [selectedTimesheet, setSelectedTimesheet] = useState<Timesheet | null>(null);
@@ -33,10 +35,13 @@ export default function ApproveDriver() {
   const [editFormData, setEditFormData] = useState<Partial<Timesheet>>({});
 
   const fetchTimesheets = async () => {
+    if (!user) return;
     try {
-      const response = await fetch('/api/timesheets');
-      const data = await response.json();
-      setTimesheets(data);
+      const response = await fetch(`${import.meta.env.VITE_URL_API}datatimesheets/${user.code_customer}`);
+      const result = await response.json();
+      if (result.status === 200) {
+        setTimesheets(result.data);
+      }
     } catch (err) {
       console.error('Failed to fetch timesheets:', err);
     } finally {
@@ -46,7 +51,32 @@ export default function ApproveDriver() {
 
   useEffect(() => {
     fetchTimesheets();
-  }, []);
+  }, [user]);
+
+  const getTimeValue = (val: string | undefined) => {
+    if (!val) return '';
+    if (val.includes(' ')) return val.split(' ')[1].substring(0, 5);
+    return val.substring(0, 5);
+  };
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-';
+    // Check if it's unix timestamp (digits only)
+    const isUnix = /^\d+$/.test(dateStr);
+    const date = isUnix ? new Date(Number(dateStr) * 1000) : new Date(dateStr);
+    
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  const updateTimeValue = (current: string | undefined, newVal: string) => {
+    if (!current) return newVal;
+    if (!current.includes(' ')) return newVal;
+    return `${current.split(' ')[0]} ${newVal}:00`;
+  };
 
   const handleApprove = async (id: number, status: number) => {
     let title = 'Are you sure?';
@@ -89,17 +119,18 @@ export default function ApproveDriver() {
 
     if (result.isConfirmed) {
       try {
-        const response = await fetch('/api/timesheets/approve', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, status }),
-        });
-        const data = await response.json();
-        if (data.success) {
-          setTimesheets(prev => prev.map(t => t.id_timesheets_mitra === id ? { ...t, status_approved: status } : t));
+        const response = await fetch(`${import.meta.env.VITE_URL_API}approve_timesheets/${user?.code_customer}/${id}`);
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          setTimesheets(prev => prev.map(t => t.id_timesheets_mitra === id ? { 
+            ...t, 
+            approved_timesheets: [result.data]
+          } : t));
+          
           Swal.fire({
             title: 'Success!',
-            text: `Record has been updated successfully.`,
+            text: `Record has been approved successfully.`,
             icon: 'success',
             timer: 1500,
             showConfirmButton: false,
@@ -118,13 +149,13 @@ export default function ApproveDriver() {
     if (!selectedTimesheet) return;
 
     try {
-      const response = await fetch(`/api/timesheets/${selectedTimesheet.id_timesheets_mitra}`, {
+      const response = await fetch(`${import.meta.env.VITE_URL_API}timesheets/${selectedTimesheet.id_timesheets_mitra}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editFormData),
       });
-      const data = await response.json();
-      if (data.success) {
+      const result = await response.json();
+      if (result.success) {
         setTimesheets(prev => prev.map(t => t.id_timesheets_mitra === selectedTimesheet.id_timesheets_mitra ? { ...t, ...editFormData } : t));
         setSelectedTimesheet(prev => prev ? { ...prev, ...editFormData } : null);
         setIsEditing(false);
@@ -184,26 +215,28 @@ export default function ApproveDriver() {
 
   const getDisplayTimeEntry = (ts: Timesheet) => {
     if (ts.is_premium === 1 || ts.is_vip === 1) return '07:00';
-    return ts.time_entry?.split(' ')[1]?.substring(0, 5) || '-';
+    return ts.time_entry || '-';
   };
 
   const getDisplayTimeExit = (ts: Timesheet) => {
     if (ts.is_premium === 1 || ts.is_vip === 1) return '16:00';
-    return ts.time_exit?.split(' ')[1]?.substring(0, 5) || '-';
+    return ts.time_exit || '-';
   };
 
   const filteredData = timesheets.filter(ts => {
     const searchLow = search.toLowerCase();
+    const currentStatus = ts.approved_timesheets[0]?.status_approve ?? 0;
+    
     const matchesSearch = 
       ts.employee_id.toLowerCase().includes(searchLow) || 
       ts.code_customer.toLowerCase().includes(searchLow) ||
-      (ts.task || '').toLowerCase().includes(searchLow);
+      (ts.penugasan || '').toLowerCase().includes(searchLow);
     
     const matchesStatus = 
       statusFilter === 'all' || 
-      (statusFilter === 'pending' && ts.status_approved === 0) ||
-      (statusFilter === 'approved' && ts.status_approved === 1) ||
-      (statusFilter === 'rejected' && ts.status_approved === -1);
+      (statusFilter === 'pending' && currentStatus === 0) ||
+      (statusFilter === 'approved' && currentStatus === 1) ||
+      (statusFilter === 'rejected' && currentStatus === -1);
 
     return matchesSearch && matchesStatus;
   });
@@ -232,7 +265,7 @@ export default function ApproveDriver() {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-4xl bg-white rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            className="relative w-full max-w-5xl bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[95vh]"
           >
             {/* Modal Header */}
             <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
@@ -389,10 +422,9 @@ export default function ApproveDriver() {
                               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Check-In Time</label>
                               <input 
                                 type="time" 
-                                value={editFormData.time_entry?.split(' ')[1]?.substring(0, 5) || ''}
+                                value={getTimeValue(editFormData.time_entry)}
                                 onChange={e => {
-                                  const datePart = editFormData.time_entry?.split(' ')[0] || new Date().toISOString().split('T')[0];
-                                  setEditFormData({...editFormData, time_entry: `${datePart} ${e.target.value}:00`});
+                                  setEditFormData({...editFormData, time_entry: updateTimeValue(editFormData.time_entry, e.target.value)});
                                 }}
                                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-100 outline-none"
                               />
@@ -412,10 +444,9 @@ export default function ApproveDriver() {
                               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Check-Out Time</label>
                               <input 
                                 type="time" 
-                                value={editFormData.time_exit?.split(' ')[1]?.substring(0, 5) || ''}
+                                value={getTimeValue(editFormData.time_exit)}
                                 onChange={e => {
-                                  const datePart = editFormData.time_exit?.split(' ')[0] || new Date().toISOString().split('T')[0];
-                                  setEditFormData({...editFormData, time_exit: `${datePart} ${e.target.value}:00`});
+                                  setEditFormData({...editFormData, time_exit: updateTimeValue(editFormData.time_exit, e.target.value)});
                                 }}
                                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-100 outline-none"
                               />
@@ -436,9 +467,19 @@ export default function ApproveDriver() {
                           <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Geographical Node</label>
                           <input 
                             type="text" 
-                            value={editFormData.site_name || ''}
-                            onChange={e => setEditFormData({...editFormData, site_name: e.target.value})}
+                            value={editFormData.penugasan || ''}
+                            onChange={e => setEditFormData({...editFormData, penugasan: e.target.value})}
                             className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-100 outline-none"
+                          />
+                        </div>
+                        <div className="space-y-1.5 pt-6 border-t border-indigo-100 col-span-2">
+                          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Audit Note / Remarks</label>
+                          <textarea 
+                            rows={3}
+                            value={(editFormData as any).note || ''}
+                            onChange={e => setEditFormData({...editFormData, note: e.target.value} as any)}
+                            placeholder="Add internal notes for this logistical record..."
+                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
                           />
                         </div>
                       </div>
@@ -456,7 +497,7 @@ export default function ApproveDriver() {
                       <div className="grid grid-cols-2 gap-6">
                         <div>
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</p>
-                          {getStatusBadge(ts.status_approved)}
+                          {getStatusBadge(ts.approved_timesheets[0]?.status_approve ?? 0)}
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Customer</p>
@@ -496,7 +537,7 @@ export default function ApproveDriver() {
                           <div>
                             <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Check-In</p>
                             <p className="font-mono text-xl font-black text-gray-900 tracking-tighter">{getDisplayTimeEntry(ts)}</p>
-                            <p className="text-[11px] font-bold text-gray-500 mt-0.5">{ts.time_entry?.split(' ')[0] || '-'}</p>
+                            <p className="text-[11px] font-bold text-gray-500 mt-0.5">{ts.date_timesheets || '-'}</p>
                           </div>
                           <div>
                             <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Odometer</p>
@@ -507,7 +548,7 @@ export default function ApproveDriver() {
                           <div>
                             <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Check-Out</p>
                             <p className="font-mono text-xl font-black text-gray-900 tracking-tighter">{getDisplayTimeExit(ts)}</p>
-                            <p className="text-[11px] font-bold text-gray-500 mt-0.5">{ts.time_exit?.split(' ')[0] || '-'}</p>
+                            <p className="text-[11px] font-bold text-gray-500 mt-0.5">{ts.date_timesheets || '-'}</p>
                           </div>
                           <div>
                             <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Odometer</p>
@@ -516,15 +557,75 @@ export default function ApproveDriver() {
                         </div>
                       </div>
 
-                      <div className="pt-6 border-t border-indigo-100">
-                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Location Node</p>
-                        <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                          <MapPin size={14} className="text-indigo-400" />
-                          {ts.site_name || 'N/A'}
-                        </p>
-                      </div>
                     </div>
                   </div>
+
+                  {/* Maps Section (Full Width) */}
+                  {ts.lokasi_timesheets.length > 0 && (
+                    <div className="pt-10 border-t border-gray-100">
+                      <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.25em] mb-6 flex items-center gap-2 px-1">
+                        <MapPin size={12} /> Geographical Evidence (Maps)
+                      </h4>
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                            <MapPin size={14} className="text-indigo-400" />
+                            {ts.penugasan || 'N/A'}
+                          </p>
+                          <p className="text-[10px] text-gray-400 font-medium ml-5">
+                            Lat: {ts.lokasi_timesheets[0].lat_masuk} | Long: {ts.lokasi_timesheets[0].long_masuk}
+                          </p>
+                        </div>
+                        
+                        <div className="w-full h-80 rounded-[40px] overflow-hidden border-2 border-indigo-50 shadow-lg bg-gray-50 group relative">
+                          <iframe 
+                            width="100%" 
+                            height="100%" 
+                            frameBorder="0" 
+                            style={{ border: 0 }}
+                            src={`https://maps.google.com/maps?q=${ts.lokasi_timesheets[0].lat_masuk},${ts.lokasi_timesheets[0].long_masuk}&z=18&output=embed`}
+                            allowFullScreen
+                          />
+                          <div className="absolute inset-0 pointer-events-none ring-1 ring-inset ring-black/5 rounded-[40px]" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Photo Evidence Section */}
+                  {ts.foto_timesheets.length > 0 && (
+                    <div className="pt-10 border-t border-gray-100">
+                      <h4 className="text-[11px] font-black text-blue-600 uppercase tracking-[0.25em] mb-6 flex items-center gap-2 px-1">
+                        <Eye size={12} /> Visual Evidence (Odometer)
+                      </h4>
+                      <div className="grid grid-cols-2 gap-8">
+                        {ts.foto_timesheets[0].foto_km_in && (
+                          <div className="space-y-3">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Entry Photo</p>
+                            <div className="group relative overflow-hidden rounded-[24px] border border-gray-200 bg-gray-50 shadow-sm transition-all hover:shadow-md">
+                              <img 
+                                src={ts.foto_timesheets[0].foto_km_in} 
+                                alt="KM Entry" 
+                                className="w-full h-56 object-cover transition-transform duration-500 group-hover:scale-105" 
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {ts.foto_timesheets[0].foto_km_out && (
+                          <div className="space-y-3">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Exit Photo</p>
+                            <div className="group relative overflow-hidden rounded-[24px] border border-gray-200 bg-gray-50 shadow-sm transition-all hover:shadow-md">
+                              <img 
+                                src={ts.foto_timesheets[0].foto_km_out} 
+                                alt="KM Exit" 
+                                className="w-full h-56 object-cover transition-transform duration-500 group-hover:scale-105" 
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -552,7 +653,7 @@ export default function ApproveDriver() {
                   >
                     Save Changes
                   </button>
-                ) : ts.status_approved === 0 ? (
+                ) : (ts.approved_timesheets[0]?.status_approve ?? 0) === 0 ? (
                   <>
                     <button 
                       onClick={() => handleApprove(ts.id_timesheets_mitra, -2)}
@@ -593,11 +694,29 @@ export default function ApproveDriver() {
           </h3>
           <p className="text-sm font-medium text-gray-500">Manage and audit daily logs from your transport partners.</p>
         </div>
-        <div className="hidden lg:flex items-center gap-2 p-1 bg-white border border-gray-200 rounded-2xl shadow-sm">
-          <div className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold border border-blue-100 flex items-center gap-2">
-            <Clock size={14} /> 
-            Recent Logs
-          </div>
+        <div className="flex items-center p-1.5 bg-white border border-gray-200 rounded-[24px] shadow-sm">
+          <button
+            onClick={() => { setStatusFilter('pending'); setCurrentPage(1); }}
+            className={`px-6 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+              statusFilter === 'pending' 
+                ? 'bg-[#1a1f2e] text-white shadow-lg' 
+                : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            <Clock size={14} />
+            Waiting Approval
+          </button>
+          <button
+            onClick={() => { setStatusFilter('approved'); setCurrentPage(1); }}
+            className={`px-6 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+              statusFilter === 'approved' 
+                ? 'bg-[#1a1f2e] text-white shadow-lg' 
+                : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            <CheckCircle size={14} />
+            Approved History
+          </button>
         </div>
       </div>
 
@@ -659,10 +778,10 @@ export default function ApproveDriver() {
                   onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
                   className="appearance-none border border-gray-200 rounded-xl px-4 py-2 pr-10 text-sm bg-white hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer font-bold"
                 >
+                  <option value="pending">Status: Pending</option>
+                  <option value="approved">Status: Approved</option>
+                  <option value="rejected">Status: Rejected</option>
                   <option value="all">Every Status</option>
-                  <option value="pending">Pending</option>
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                   <ChevronRight size={14} className="rotate-90" />
@@ -676,6 +795,7 @@ export default function ApproveDriver() {
               <thead className="bg-[#fcfcfa]/80 text-gray-500 text-[11px] font-bold uppercase tracking-wider">
                 <tr>
                   <th className="px-8 py-5">No</th>
+                  <th className="px-8 py-5">Date</th>
                   <th className="px-8 py-5">Driver Info</th>
                   <th className="px-8 py-5">Schedule In/Out</th>
                   <th className="px-8 py-5">Premium</th>   
@@ -695,6 +815,12 @@ export default function ApproveDriver() {
                   >
                     <td className="px-8 py-6 text-sm font-medium text-gray-400">
                       {(currentPage - 1) * itemsPerPage + index + 1}
+                    </td>
+                    <td className="px-8 py-6 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="text-[13px] font-black text-gray-900 tracking-tight">{formatDate(ts.date_timesheets)}</span>
+                        <span className="text-[9px] font-black text-blue-600/60 uppercase tracking-widest mt-0.5">Partner Log</span>
+                      </div>
                     </td>
                     <td className="px-8 py-6 whitespace-nowrap">
                        <div className="flex items-center gap-4">
@@ -751,7 +877,9 @@ export default function ApproveDriver() {
                         <span className="text-gray-300 font-black px-2">-</span>
                       )}
                     </td>
-                    <td className="px-8 py-6">{getStatusBadge(ts.status_approved)}</td>
+                    <td className="px-8 py-6 whitespace-nowrap">
+                      {getStatusBadge(ts.approved_timesheets[0]?.status_approve ?? 0)}
+                    </td>
                     <td className="px-8 py-6 text-right whitespace-nowrap">
                       <div className="flex justify-end gap-2">
                         <button 
@@ -768,7 +896,7 @@ export default function ApproveDriver() {
                         >
                           <Pencil size={18} />
                         </button>
-                        {ts.status_approved === 0 ? (
+                        {(ts.approved_timesheets[0]?.status_approve ?? 0) === 0 ? (
                           <div className="flex items-center gap-1.5 ml-2 border-l border-gray-100 pl-3">
                              <button 
                               onClick={() => handleApprove(ts.id_timesheets_mitra, -2)}
@@ -787,7 +915,7 @@ export default function ApproveDriver() {
                           </div>
                         ) : (
                           <div className="h-10 px-3 flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl">
-                            {ts.status_approved === 1 ? (
+                            {(ts.approved_timesheets[0]?.status_approve ?? 0) === 1 ? (
                               <CheckCircle size={14} className="text-emerald-500" />
                             ) : (
                               <XCircle size={14} className="text-rose-500" />

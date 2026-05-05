@@ -15,27 +15,43 @@ export interface Driver {
   status?: string;
 }
 
+export interface ApprovedTimesheet {
+  id_approved_timesheets: number;
+  status_approve: number;
+  date_approve: string;
+  note: string | null;
+}
+
+export interface FotoTimesheet {
+  id_fototimesheets: number;
+  foto_km_in: string;
+  foto_km_out: string;
+}
+
+export interface LokasiTimesheet {
+  id_lokasi_timesheets: number;
+  lat_masuk: string;
+  long_masuk: string;
+  lat_keluar: string;
+  long_keluar: string;
+}
+
 export interface Timesheet {
   id_timesheets_mitra: number;
   employee_id: string;
   code_customer: string;
+  date_timesheets: string;
   time_entry: string;
   km_entry: string;
   time_exit: string;
   km_exit: string;
-  foto_km_in?: string | null;
-  foto_km_out?: string | null;
-  lat_masuk?: string | null;
-  long_masuk?: string | null;
-  lat_keluar?: string | null;
-  long_keluar?: string | null;
   is_premium?: number | null;
   premium_name?: string | null;
   is_vip?: number | null;
   vip_name?: string | null;
-  is_task?: number | null;
-  task: string;
-  site_name?: string | null;
-  status_approved: number; // 0: Pending, 1: Approved, -1: Rejected
+  penugasan: string;
   created_at: string;
+  approved_timesheets: ApprovedTimesheet[];
+  foto_timesheets: FotoTimesheet[];
+  lokasi_timesheets: LokasiTimesheet[];
 }
