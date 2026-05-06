@@ -113,6 +113,7 @@ export default function DashboardLayout() {
                 { path: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
                 { path: '/dashboard/approve',   icon: Users,          label: 'Approval Center' },
                 { path: '/dashboard/driver',    icon: UserSquare2,    label: 'Driver Database' },
+                { path: '/dashboard/timesheets', icon: Calendar,      label: 'Timesheets' },
                 { path: '/dashboard/users',     icon: Users,          label: 'User Management', role: 'superadmin' },
               ] as const).filter(item => {
                 if (isSuperAdmin) {
