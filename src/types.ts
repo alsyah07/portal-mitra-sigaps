@@ -1,18 +1,30 @@
+export interface Role {
+  id_role: number;
+  id_users: number;
+  role: string;
+}
+
 export interface User {
   id_users: number;
   code_customer: string;
   nama_customer: string;
   email: string;
   status: number;
+  role?: Role[];
 }
 
 export interface Driver {
-  id: number;
+  id: string;
   driver_code: string;
+  employee_id: string;
   nama_lengkap: string;
-  foto?: string;
+  foto?: string | null;
   phone: string;
   status?: string;
+  company_name?: string;
+  iwo_name?: string;
+  user_name?: string;
+  code_customer?: string;
 }
 
 export interface ApprovedTimesheet {
@@ -49,6 +61,8 @@ export interface Timesheet {
   premium_name?: string | null;
   is_vip?: number | null;
   vip_name?: string | null;
+  status_hari_raya?: number | null;
+  status_hari_libur?: number | null;
   penugasan: string;
   created_at: string;
   approved_timesheets: ApprovedTimesheet[];

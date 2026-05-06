@@ -5,6 +5,7 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import Overview from '../pages/Overview';
 import DriverDatabase from '../pages/DriverDatabase';
 import ApproveDriver from '../pages/ApproveDriver';
+import UserManagement from '../pages/UserManagement';
 
 export default function AppRouter() {
   return (
@@ -18,7 +19,8 @@ export default function AppRouter() {
           <Route index element={<Overview />} />
          
           <Route path="approve" element={<ApproveDriver />} />
-           <Route path="driver" element={<DriverDatabase />} />
+          <Route path="driver" element={<DriverDatabase />} />
+          <Route path="users" element={<UserManagement />} />
         </Route>
         
         {/* Redirect Root to Dashboard */}

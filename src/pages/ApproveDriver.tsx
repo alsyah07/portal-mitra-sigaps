@@ -16,13 +16,15 @@ import {
   ShieldCheck,
   Pencil,
   Truck,
+  Ban,
   X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function ApproveDriver() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
+  const [drivers, setDrivers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Data Table State
@@ -37,9 +39,13 @@ export default function ApproveDriver() {
   const fetchTimesheets = async () => {
     if (!user) return;
     try {
-      const response = await fetch(`${import.meta.env.VITE_URL_API}datatimesheets/${user.code_customer}`);
+      const response = await fetch(`${import.meta.env.VITE_URL_API}datatimesheets/${user.code_customer}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const result = await response.json();
-      if (result.status === 200) {
+      if (result.status === 'success' || result.status === 200) {
         setTimesheets(result.data);
       }
     } catch (err) {
@@ -49,8 +55,22 @@ export default function ApproveDriver() {
     }
   };
 
+  const fetchDrivers = async () => {
+    if (!user) return;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_URL_API_DRIVER}drivers/code_company/${user.code_customer}`);
+      const result = await response.json();
+      if (result.data) {
+        setDrivers(result.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch drivers:', err);
+    }
+  };
+
   useEffect(() => {
     fetchTimesheets();
+    fetchDrivers();
   }, [user]);
 
   const getTimeValue = (val: string | undefined) => {
@@ -79,36 +99,46 @@ export default function ApproveDriver() {
   };
 
   const handleApprove = async (id: number, status: number) => {
-    let title = 'Are you sure?';
-    let text = 'You want to approve this timesheet?';
+    let title = 'Apakah Anda yakin?';
+    let text = 'Anda ingin menyetujui timesheet ini?';
     let icon: 'warning' | 'info' | 'success' | 'error' = 'info';
     let confirmButtonColor = '#2563eb';
+    let showInput = false;
 
     if (status === 1) {
-      title = 'Approve Timesheet?';
-      text = 'This record will be marked as verified.';
+      title = 'Setujui Timesheet?';
+      text = 'Catatan ini akan ditandai sebagai terverifikasi.';
       icon = 'success';
     } else if (status === -1) {
-      title = 'Reject Timesheet?';
-      text = 'This record will be rejected and the driver may need to resubmit.';
-      icon = 'warning';
+      title = 'Tolak Timesheet?';
+      text = 'Harap berikan alasan penolakan:';
+      icon = 'error';
       confirmButtonColor = '#e11d48';
+      showInput = true;
     } else if (status === -2) {
-      title = 'Request Revision?';
-      text = 'The driver will be notified to revise this record.';
-      icon = 'info';
+      title = 'Minta Revisi?';
+      text = 'Harap berikan instruksi untuk revisi:';
+      icon = 'warning';
       confirmButtonColor = '#d97706';
+      showInput = true;
     }
 
     const result = await Swal.fire({
       title,
       text,
       icon,
+      input: showInput ? 'textarea' : undefined,
+      inputPlaceholder: showInput ? 'Masukkan alasan di sini...' : undefined,
       showCancelButton: true,
       confirmButtonColor,
       cancelButtonColor: '#f1f5f9',
-      confirmButtonText: 'Yes, proceed',
-      cancelButtonText: 'Cancel',
+      confirmButtonText: 'Ya, Lanjutkan',
+      cancelButtonText: 'Batal',
+      inputValidator: (value) => {
+        if (showInput && !value) {
+          return 'Anda harus memberikan alasan!';
+        }
+      },
       customClass: {
         popup: 'rounded-[32px] border-none shadow-2xl',
         title: 'font-black tracking-tight',
@@ -119,18 +149,27 @@ export default function ApproveDriver() {
 
     if (result.isConfirmed) {
       try {
-        const response = await fetch(`${import.meta.env.VITE_URL_API}approve_timesheets/${user?.code_customer}/${id}`);
-        const result = await response.json();
+        const note = result.value || '';
+        const response = await fetch(`${import.meta.env.VITE_URL_API}approve_timesheets/${user?.code_customer}/${id}?status=${status}&note=${encodeURIComponent(note)}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const resultJson = await response.json();
         
-        if (result.status === 'success') {
+        if (resultJson.status === 'success') {
           setTimesheets(prev => prev.map(t => t.id_timesheets_mitra === id ? { 
             ...t, 
-            approved_timesheets: [result.data]
+            approved_timesheets: [resultJson.data]
           } : t));
           
+          if (selectedTimesheet?.id_timesheets_mitra === id) {
+            setSelectedTimesheet(prev => prev ? { ...prev, approved_timesheets: [resultJson.data] } : null);
+          }
+
           Swal.fire({
-            title: 'Success!',
-            text: `Record has been approved successfully.`,
+            title: 'Berhasil!',
+            text: `Data telah berhasil diproses.`,
             icon: 'success',
             timer: 1500,
             showConfirmButton: false,
@@ -139,7 +178,7 @@ export default function ApproveDriver() {
         }
       } catch (err) {
         console.error('Failed to update status:', err);
-        Swal.fire('Error', 'Failed to update status', 'error');
+        Swal.fire('Kesalahan', 'Gagal memperbarui status', 'error');
       }
     }
   };
@@ -149,23 +188,26 @@ export default function ApproveDriver() {
     if (!selectedTimesheet) return;
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_URL_API}timesheets/${selectedTimesheet.id_timesheets_mitra}`, {
+      const response = await fetch(`${import.meta.env.VITE_URL_API}edit_timesheets/${user?.code_customer}/${selectedTimesheet.id_timesheets_mitra}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(editFormData),
       });
       const result = await response.json();
-      if (result.success) {
+      if (result.status === 'success') {
         setTimesheets(prev => prev.map(t => t.id_timesheets_mitra === selectedTimesheet.id_timesheets_mitra ? { ...t, ...editFormData } : t));
         setSelectedTimesheet(prev => prev ? { ...prev, ...editFormData } : null);
         setIsEditing(false);
         Swal.fire({
-          title: 'Success',
-          text: 'Timesheet log has been successfully updated.',
+          title: 'Updated!',
+          text: 'Record has been successfully modified.',
           icon: 'success',
           timer: 1500,
           showConfirmButton: false,
-          customClass: { popup: 'rounded-[32px]' }
+          customClass: { popup: 'rounded-[32px] px-8 py-6' }
         });
       }
     } catch (err) {
@@ -175,6 +217,16 @@ export default function ApproveDriver() {
   };
 
   const handleEditClick = (ts: Timesheet) => {
+    if ((ts.approved_timesheets[0]?.status_approve ?? 0) === 1) {
+      Swal.fire({
+        title: 'Access Denied',
+        text: 'This record is already approved and cannot be modified.',
+        icon: 'warning',
+        confirmButtonColor: '#1a1f2e',
+        customClass: { popup: 'rounded-[32px]' }
+      });
+      return;
+    }
     setSelectedTimesheet(ts);
     setEditFormData(ts);
     setIsEditing(true);
@@ -186,40 +238,38 @@ export default function ApproveDriver() {
         return (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200/50">
             <div className="h-1 w-1 rounded-full bg-emerald-500" />
-            Approved
+            Disetujui
           </span>
         );
       case -1:
         return (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-0.5 text-[11px] font-semibold text-rose-700 border border-rose-200/50">
             <div className="h-1 w-1 rounded-full bg-rose-500" />
-            Rejected
+            Ditolak
           </span>
         );
       case -2:
         return (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700 border border-amber-200/50">
             <div className="h-1 w-1 rounded-full bg-amber-500" />
-            Revision
+            Revisi
           </span>
         );
       default:
         return (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700 border border-amber-200/50">
             <div className="h-1 w-1 rounded-full bg-amber-500 animate-pulse" />
-            Pending
+            Menunggu
           </span>
         );
     }
   };
 
   const getDisplayTimeEntry = (ts: Timesheet) => {
-    if (ts.is_premium === 1 || ts.is_vip === 1) return '07:00';
     return ts.time_entry || '-';
   };
 
   const getDisplayTimeExit = (ts: Timesheet) => {
-    if (ts.is_premium === 1 || ts.is_vip === 1) return '16:00';
     return ts.time_exit || '-';
   };
 
@@ -265,7 +315,7 @@ export default function ApproveDriver() {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-5xl bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[95vh]"
+            className="relative w-full max-w-7xl bg-white rounded-[48px] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] border border-white/20"
           >
             {/* Modal Header */}
             <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
@@ -274,7 +324,7 @@ export default function ApproveDriver() {
                   {isEditing ? <Pencil size={24} /> : <FileCheck size={24} />}
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-gray-900 tracking-tight">{isEditing ? 'Revise Logistical Record' : 'Timesheet Log Detail'}</h3>
+                  <h3 className="text-xl font-black text-gray-900 tracking-tight">{isEditing ? 'Edit Timesheet' : 'Detail Timesheet'}</h3>
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-0.5">ID: {ts.id_timesheets_mitra} • {ts.employee_id}</p>
                 </div>
               </div>
@@ -323,18 +373,12 @@ export default function ApproveDriver() {
                       </div>
 
                       <h4 className="text-[11px] font-black text-blue-600 uppercase tracking-[0.25em] flex items-center gap-2 px-1">
-                        <Truck size={12} /> Service Tiers
+                        <Truck size={12} /> Daily Insentif
                       </h4>
                       <div className="grid grid-cols-2 gap-4">
                         <div className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-3 ${editFormData.is_premium === 1 ? 'bg-blue-50/50 border-blue-500' : 'bg-white border-gray-100 opacity-60'}`} onClick={() => {
                           const isPremium = editFormData.is_premium === 1 ? 0 : 1;
-                          let newEntry = editFormData.time_entry;
-                          let newExit = editFormData.time_exit;
-                          if (isPremium) {
-                            if (newEntry) newEntry = newEntry.split(' ')[0] + ' 07:00:00';
-                            if (newExit) newExit = newExit.split(' ')[0] + ' 16:00:00';
-                          }
-                          setEditFormData({...editFormData, is_premium: isPremium, is_vip: 0, time_entry: newEntry, time_exit: newExit});
+                          setEditFormData({...editFormData, is_premium: isPremium});
                         }}>
                           <div className="flex items-center justify-between">
                             <span className="text-[9px] font-black uppercase tracking-widest">Premium</span>
@@ -352,13 +396,7 @@ export default function ApproveDriver() {
                         </div>
                         <div className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-3 ${editFormData.is_vip === 1 ? 'bg-amber-50/50 border-amber-500' : 'bg-white border-gray-100 opacity-60'}`} onClick={() => {
                           const isVip = editFormData.is_vip === 1 ? 0 : 1;
-                          let newEntry = editFormData.time_entry;
-                          let newExit = editFormData.time_exit;
-                          if (isVip) {
-                            if (newEntry) newEntry = newEntry.split(' ')[0] + ' 07:00:00';
-                            if (newExit) newExit = newExit.split(' ')[0] + ' 16:00:00';
-                          }
-                          setEditFormData({...editFormData, is_vip: isVip, is_premium: 0, time_entry: newEntry, time_exit: newExit});
+                          setEditFormData({...editFormData, is_vip: isVip});
                         }}>
                           <div className="flex items-center justify-between">
                             <span className="text-[9px] font-black uppercase tracking-widest">VIP dedicated</span>
@@ -374,12 +412,33 @@ export default function ApproveDriver() {
                             className="bg-transparent border-none p-0 text-xs font-bold focus:ring-0 placeholder:text-gray-300"
                           />
                         </div>
+
+                        {/* Holiday Status */}
+                        <div className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-3 ${editFormData.status_hari_raya === 1 ? 'bg-rose-50/50 border-rose-500' : 'bg-white border-gray-100 opacity-60'}`} onClick={() => setEditFormData({...editFormData, status_hari_raya: editFormData.status_hari_raya === 1 ? 0 : 1})}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] font-black uppercase tracking-widest">Hari Raya</span>
+                            <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${editFormData.status_hari_raya === 1 ? 'bg-rose-600 border-rose-600 text-white' : 'border-gray-300'}`}>
+                              {editFormData.status_hari_raya === 1 && <CheckCircle size={10} />}
+                            </div>
+                          </div>
+                          <span className="text-xs font-bold text-gray-900">Public Holiday</span>
+                        </div>
+
+                        <div className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-3 ${editFormData.status_hari_libur === 1 ? 'bg-indigo-50/50 border-indigo-500' : 'bg-white border-gray-100 opacity-60'}`} onClick={() => setEditFormData({...editFormData, status_hari_libur: editFormData.status_hari_libur === 1 ? 0 : 1})}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] font-black uppercase tracking-widest">Hari Libur</span>
+                            <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${editFormData.status_hari_libur === 1 ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300'}`}>
+                              {editFormData.status_hari_libur === 1 && <CheckCircle size={10} />}
+                            </div>
+                          </div>
+                          <span className="text-xs font-bold text-gray-900">Weekend/Off</span>
+                        </div>
                       </div>
                     </div>
 
                     <div className="space-y-6">
                       <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.25em] flex items-center gap-2 px-1">
-                        <MapPin size={12} /> Logistical Metrics
+                        <MapPin size={12} /> Work Hour Insentif
                       </h4>
                       <div className="p-8 bg-indigo-50/30 border border-indigo-100/50 rounded-[32px] space-y-8">
                         <div className="bg-white p-4 rounded-2xl border border-indigo-100 flex items-center justify-between shadow-sm">
@@ -464,22 +523,12 @@ export default function ApproveDriver() {
                         </div>
 
                         <div className="space-y-1.5 pt-6 border-t border-indigo-100">
-                          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Geographical Node</label>
+                          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Penugasan</label>
                           <input 
                             type="text" 
                             value={editFormData.penugasan || ''}
                             onChange={e => setEditFormData({...editFormData, penugasan: e.target.value})}
                             className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-100 outline-none"
-                          />
-                        </div>
-                        <div className="space-y-1.5 pt-6 border-t border-indigo-100 col-span-2">
-                          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Audit Note / Remarks</label>
-                          <textarea 
-                            rows={3}
-                            value={(editFormData as any).note || ''}
-                            onChange={e => setEditFormData({...editFormData, note: e.target.value} as any)}
-                            placeholder="Add internal notes for this logistical record..."
-                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
                           />
                         </div>
                       </div>
@@ -491,34 +540,48 @@ export default function ApproveDriver() {
                   {/* Read-only view */}
                   <div className="space-y-6">
                     <h4 className="text-[11px] font-black text-blue-600 uppercase tracking-[0.25em] flex items-center gap-2 px-1">
-                      <ShieldCheck size={12} /> Operational Core
+                      <ShieldCheck size={12} />Operasional
                     </h4>
-                    <div className="p-8 bg-gray-50/50 border border-gray-100 rounded-[32px] space-y-6">
-                      <div className="grid grid-cols-2 gap-6">
+                    <div className="p-8 bg-gray-50/50 border border-gray-100 rounded-[32px] space-y-8">
+                      <div className="grid grid-cols-2 gap-8">
                         <div>
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</p>
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Status Saat Ini</p>
                           {getStatusBadge(ts.approved_timesheets[0]?.status_approve ?? 0)}
                         </div>
                         <div>
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Customer</p>
-                          <p className="font-mono text-sm font-black text-gray-900 bg-white px-3 py-1.5 rounded-lg border border-gray-200 inline-block">{ts.code_customer}</p>
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Code Customer</p>
+                          <p className="font-mono text-sm font-black text-blue-600 bg-blue-50/50 px-4 py-2 rounded-xl border border-blue-100 inline-block tracking-tight">{ts.code_customer}</p>
                         </div>
                       </div>
 
-                      <div className="pt-6 border-t border-gray-200/60">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Service Tiers</p>
-                        <div className="flex gap-3">
+                      <div className="pt-8 border-t border-gray-200/60">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Daily Insentif</p>
+                        <div className="flex flex-wrap gap-3">
                           {ts.is_premium === 1 && (
-                            <span className="px-3 py-1.5 bg-blue-50 text-blue-700 text-[11px] font-bold rounded-lg border border-blue-100 flex items-center gap-1.5">
-                              <CheckCircle size={12} /> Premium {ts.premium_name ? `(${ts.premium_name})` : ''}
+                            <span className="px-4 py-2 bg-blue-50 text-blue-700 text-[11px] font-bold rounded-xl border border-blue-100 flex items-center gap-2 shadow-sm">
+                              <CheckCircle size={14} className="text-blue-500" /> Premium {ts.premium_name ? `(${ts.premium_name})` : ''}
                             </span>
                           )}
                           {ts.is_vip === 1 && (
-                            <span className="px-3 py-1.5 bg-amber-50 text-amber-700 text-[11px] font-bold rounded-lg border border-amber-100 flex items-center gap-1.5">
-                              <CheckCircle size={12} /> VIP {ts.vip_name ? `(${ts.vip_name})` : ''}
+                            <span className="px-4 py-2 bg-amber-50 text-amber-700 text-[11px] font-bold rounded-xl border border-amber-100 flex items-center gap-2 shadow-sm">
+                              <CheckCircle size={14} className="text-amber-500" /> VIP {ts.vip_name ? `(${ts.vip_name})` : ''}
                             </span>
                           )}
-                          {!ts.is_premium && !ts.is_vip && <span className="text-sm font-bold text-gray-400">Standard Run</span>}
+                          {ts.status_hari_raya === 1 && (
+                            <span className="px-4 py-2 bg-rose-50 text-rose-700 text-[11px] font-bold rounded-xl border border-rose-100 flex items-center gap-2 shadow-sm">
+                              <CheckCircle size={14} className="text-rose-500" /> HARI RAYA
+                            </span>
+                          )}
+                          {ts.status_hari_libur === 1 && (
+                            <span className="px-4 py-2 bg-indigo-50 text-indigo-700 text-[11px] font-bold rounded-xl border border-indigo-100 flex items-center gap-2 shadow-sm">
+                              <CheckCircle size={14} className="text-indigo-500" /> HARI LIBUR
+                            </span>
+                          )}
+                          {!ts.is_premium && !ts.is_vip && !ts.status_hari_raya && !ts.status_hari_libur && (
+                            <span className="px-4 py-2 bg-gray-50 text-gray-400 text-[11px] font-bold rounded-xl border border-gray-200 flex items-center gap-2">
+                              Pengiriman Standar
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -526,7 +589,7 @@ export default function ApproveDriver() {
 
                   <div className="space-y-6">
                     <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.25em] flex items-center gap-2 px-1">
-                      <MapPin size={12} /> Logistical Metrics
+                      <MapPin size={12} /> Insentif Jam Kerja
                     </h4>
                     <div className="p-8 bg-indigo-50/30 border border-indigo-100/50 rounded-[32px] space-y-8">
                       <div className="grid grid-cols-2 gap-8 relative">
@@ -535,7 +598,7 @@ export default function ApproveDriver() {
                         </div>
                         <div className="space-y-4">
                           <div>
-                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Check-In</p>
+                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Masuk</p>
                             <p className="font-mono text-xl font-black text-gray-900 tracking-tighter">{getDisplayTimeEntry(ts)}</p>
                             <p className="text-[11px] font-bold text-gray-500 mt-0.5">{ts.date_timesheets || '-'}</p>
                           </div>
@@ -546,7 +609,7 @@ export default function ApproveDriver() {
                         </div>
                         <div className="space-y-4">
                           <div>
-                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Check-Out</p>
+                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Keluar</p>
                             <p className="font-mono text-xl font-black text-gray-900 tracking-tighter">{getDisplayTimeExit(ts)}</p>
                             <p className="text-[11px] font-bold text-gray-500 mt-0.5">{ts.date_timesheets || '-'}</p>
                           </div>
@@ -557,6 +620,14 @@ export default function ApproveDriver() {
                         </div>
                       </div>
 
+                      <div className="space-y-2 pt-8 border-t border-indigo-100/30">
+                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Penugasan</p>
+                        <div className="p-5 bg-white/80 border border-indigo-100 rounded-[24px] shadow-sm backdrop-blur-sm">
+                          <p className="text-sm font-bold text-gray-700 leading-relaxed italic">
+                            "{ts.approved_timesheets[0]?.note || "Tidak ada catatan administrasi atau detail insentif untuk data ini."}"
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -564,30 +635,60 @@ export default function ApproveDriver() {
                   {ts.lokasi_timesheets.length > 0 && (
                     <div className="pt-10 border-t border-gray-100">
                       <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.25em] mb-6 flex items-center gap-2 px-1">
-                        <MapPin size={12} /> Geographical Evidence (Maps)
+                        <MapPin size={12} /> Bukti Geografis (Peta)
                       </h4>
-                      <div className="space-y-4">
-                        <div className="space-y-1">
-                          <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                            <MapPin size={14} className="text-indigo-400" />
-                            {ts.penugasan || 'N/A'}
-                          </p>
-                          <p className="text-[10px] text-gray-400 font-medium ml-5">
-                            Lat: {ts.lokasi_timesheets[0].lat_masuk} | Long: {ts.lokasi_timesheets[0].long_masuk}
-                          </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Entry Map */}
+                        <div className="space-y-4">
+                          <div className="space-y-1">
+                            <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                              <MapPin size={14} className="text-emerald-400" />
+                              Lokasi Masuk
+                            </p>
+                            <p className="text-[10px] text-gray-400 font-medium ml-5">
+                              Lat: {ts.lokasi_timesheets[0].lat_masuk} | Long: {ts.lokasi_timesheets[0].long_masuk}
+                            </p>
+                          </div>
+                          
+                          <div className="w-full h-64 rounded-[40px] overflow-hidden border-2 border-indigo-50 shadow-lg bg-gray-50 group relative">
+                            <iframe 
+                              width="100%" 
+                              height="100%" 
+                              frameBorder="0" 
+                              style={{ border: 0 }}
+                              src={`https://maps.google.com/maps?q=${ts.lokasi_timesheets[0].lat_masuk},${ts.lokasi_timesheets[0].long_masuk}&z=18&output=embed`}
+                              allowFullScreen
+                            />
+                            <div className="absolute inset-0 pointer-events-none ring-1 ring-inset ring-black/5 rounded-[40px]" />
+                          </div>
                         </div>
-                        
-                        <div className="w-full h-80 rounded-[40px] overflow-hidden border-2 border-indigo-50 shadow-lg bg-gray-50 group relative">
-                          <iframe 
-                            width="100%" 
-                            height="100%" 
-                            frameBorder="0" 
-                            style={{ border: 0 }}
-                            src={`https://maps.google.com/maps?q=${ts.lokasi_timesheets[0].lat_masuk},${ts.lokasi_timesheets[0].long_masuk}&z=18&output=embed`}
-                            allowFullScreen
-                          />
-                          <div className="absolute inset-0 pointer-events-none ring-1 ring-inset ring-black/5 rounded-[40px]" />
-                        </div>
+
+                        {/* Exit Map */}
+                        {ts.lokasi_timesheets[0].lat_keluar && ts.lokasi_timesheets[0].long_keluar && (
+                          <div className="space-y-4">
+                            <div className="space-y-1">
+                              <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                                <MapPin size={14} className="text-rose-400" />
+                                Lokasi Keluar
+                              </p>
+                              <p className="text-[10px] text-gray-400 font-medium ml-5">
+                                Lat: {ts.lokasi_timesheets[0].lat_keluar} | Long: {ts.lokasi_timesheets[0].long_keluar}
+                              </p>
+                            </div>
+                            
+                            <div className="w-full h-64 rounded-[40px] overflow-hidden border-2 border-indigo-50 shadow-lg bg-gray-50 group relative">
+                              <iframe 
+                                width="100%" 
+                                height="100%" 
+                                frameBorder="0" 
+                                style={{ border: 0 }}
+                                src={`https://maps.google.com/maps?q=${ts.lokasi_timesheets[0].lat_keluar},${ts.lokasi_timesheets[0].long_keluar}&z=18&output=embed`}
+                                allowFullScreen
+                              />
+                              <div className="absolute inset-0 pointer-events-none ring-1 ring-inset ring-black/5 rounded-[40px]" />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -596,30 +697,38 @@ export default function ApproveDriver() {
                   {ts.foto_timesheets.length > 0 && (
                     <div className="pt-10 border-t border-gray-100">
                       <h4 className="text-[11px] font-black text-blue-600 uppercase tracking-[0.25em] mb-6 flex items-center gap-2 px-1">
-                        <Eye size={12} /> Visual Evidence (Odometer)
+                        <Eye size={12} /> Bukti Visual (Odometer)
                       </h4>
-                      <div className="grid grid-cols-2 gap-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {ts.foto_timesheets[0].foto_km_in && (
-                          <div className="space-y-3">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Entry Photo</p>
-                            <div className="group relative overflow-hidden rounded-[24px] border border-gray-200 bg-gray-50 shadow-sm transition-all hover:shadow-md">
+                          <div className="space-y-4">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                              Bukti Odometer Masuk
+                            </p>
+                            <div className="group relative overflow-hidden rounded-[32px] border-2 border-gray-100 bg-gray-50 shadow-sm transition-all hover:shadow-xl hover:border-blue-200 cursor-zoom-in">
                               <img 
                                 src={ts.foto_timesheets[0].foto_km_in} 
                                 alt="KM Entry" 
-                                className="w-full h-56 object-cover transition-transform duration-500 group-hover:scale-105" 
+                                className="w-full h-72 object-cover transition-transform duration-700 group-hover:scale-110" 
                               />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
                           </div>
                         )}
                         {ts.foto_timesheets[0].foto_km_out && (
-                          <div className="space-y-3">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Exit Photo</p>
-                            <div className="group relative overflow-hidden rounded-[24px] border border-gray-200 bg-gray-50 shadow-sm transition-all hover:shadow-md">
+                          <div className="space-y-4">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                              <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                              Bukti Odometer Keluar
+                            </p>
+                            <div className="group relative overflow-hidden rounded-[32px] border-2 border-gray-100 bg-gray-50 shadow-sm transition-all hover:shadow-xl hover:border-blue-200 cursor-zoom-in">
                               <img 
                                 src={ts.foto_timesheets[0].foto_km_out} 
                                 alt="KM Exit" 
-                                className="w-full h-56 object-cover transition-transform duration-500 group-hover:scale-105" 
+                                className="w-full h-72 object-cover transition-transform duration-700 group-hover:scale-110" 
                               />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
                           </div>
                         )}
@@ -643,7 +752,7 @@ export default function ApproveDriver() {
                   }}
                   className="px-6 py-2.5 rounded-xl font-bold text-sm text-gray-600 hover:bg-gray-100 transition-all"
                 >
-                  Close
+                  Tutup
                 </button>
                 {isEditing ? (
                   <button 
@@ -651,21 +760,27 @@ export default function ApproveDriver() {
                     type="submit"
                     className="px-6 py-2.5 rounded-xl font-bold text-sm bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-200 transition-all"
                   >
-                    Save Changes
+                    Simpan Perubahan
                   </button>
                 ) : (ts.approved_timesheets[0]?.status_approve ?? 0) === 0 ? (
                   <>
                     <button 
+                      onClick={() => handleApprove(ts.id_timesheets_mitra, -1)}
+                      className="px-6 py-2.5 rounded-xl font-bold text-sm text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all flex items-center gap-2"
+                    >
+                      <Ban size={16} /> Tolak
+                    </button>
+                    <button 
                       onClick={() => handleApprove(ts.id_timesheets_mitra, -2)}
                       className="px-6 py-2.5 rounded-xl font-bold text-sm text-amber-600 bg-amber-50 hover:bg-amber-100 transition-all flex items-center gap-2"
                     >
-                      <History size={16} /> Request Revision
+                      <History size={16} /> Revisi
                     </button>
                     <button 
                       onClick={() => handleApprove(ts.id_timesheets_mitra, 1)}
                       className="px-6 py-2.5 rounded-xl font-bold text-sm bg-[#1a1f2e] text-white hover:bg-blue-600 transition-all flex items-center gap-2 shadow-lg"
                     >
-                      <CheckCircle size={16} /> Approve Log
+                      <CheckCircle size={16} /> Setujui
                     </button>
                   </>
                 ) : null}
@@ -800,6 +915,7 @@ export default function ApproveDriver() {
                   <th className="px-8 py-5">Schedule In/Out</th>
                   <th className="px-8 py-5">Premium</th>   
                   <th className="px-8 py-5">VIP</th>   
+                  <th className="px-8 py-5 whitespace-nowrap">Day Status</th>
                   <th className="px-8 py-5">Status</th>
                   <th className="px-8 py-5 text-right">Actions</th>
                 </tr>
@@ -817,10 +933,7 @@ export default function ApproveDriver() {
                       {(currentPage - 1) * itemsPerPage + index + 1}
                     </td>
                     <td className="px-8 py-6 whitespace-nowrap">
-                      <div className="flex flex-col">
-                        <span className="text-[13px] font-black text-gray-900 tracking-tight">{formatDate(ts.date_timesheets)}</span>
-                        <span className="text-[9px] font-black text-blue-600/60 uppercase tracking-widest mt-0.5">Partner Log</span>
-                      </div>
+                      <span className="text-[13px] font-black text-gray-900 tracking-tight">{formatDate(ts.date_timesheets)}</span>
                     </td>
                     <td className="px-8 py-6 whitespace-nowrap">
                        <div className="flex items-center gap-4">
@@ -829,7 +942,7 @@ export default function ApproveDriver() {
                          </div>
                          <div>
                            <div className="font-black text-gray-900 tracking-tight text-[15px]">{ts.employee_id}</div>
-                           <div className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-0.5">Verified Logistical Partner</div>
+                           <div className="text-[10px] text-blue-600 font-black uppercase tracking-widest mt-0.5">{drivers.find(d => d.employee_id === ts.employee_id)?.full_name || 'Verified Transport Partner'}</div>
                          </div>
                        </div>
                     </td>
@@ -862,7 +975,9 @@ export default function ApproveDriver() {
                           {ts.premium_name && <span className="text-[9px] font-bold text-gray-400 truncate max-w-[100px]">{ts.premium_name}</span>}
                         </div>
                       ) : (
-                        <span className="text-gray-300 font-black px-2">-</span>
+                        <span className="inline-flex items-center gap-1 bg-rose-50/50 text-rose-500 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-100">
+                          <XCircle size={10} /> Not Active
+                        </span>
                       )}
                     </td>
                     <td className="px-8 py-6 whitespace-nowrap">
@@ -874,8 +989,45 @@ export default function ApproveDriver() {
                           {ts.vip_name && <span className="text-[9px] font-bold text-gray-400 truncate max-w-[100px]">{ts.vip_name}</span>}
                         </div>
                       ) : (
-                        <span className="text-gray-300 font-black px-2">-</span>
+                        <span className="inline-flex items-center gap-1 bg-rose-50/50 text-rose-500 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-100">
+                          <XCircle size={10} /> Not Active
+                        </span>
                       )}
+                    </td>
+                    <td className="px-8 py-6 whitespace-nowrap">
+                      <div className="flex flex-col gap-3">
+                        {ts.status_hari_raya === 1 ? (
+                          <div className="flex flex-col items-start gap-0.5">
+                            <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-600 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-200/50">
+                              <CheckCircle size={10} /> Active
+                            </span>
+                            <span className="text-[9px] font-black text-rose-600/60 uppercase ml-1">HARI RAYA</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-start gap-0.5 opacity-80">
+                            <span className="inline-flex items-center gap-1 bg-rose-50/50 text-rose-500 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-100">
+                              <XCircle size={10} /> Not Active
+                            </span>
+                            <span className="text-[9px] font-black text-rose-400/60 uppercase ml-1">HARI RAYA</span>
+                          </div>
+                        )}
+
+                        {ts.status_hari_libur === 1 ? (
+                          <div className="flex flex-col items-start gap-0.5">
+                            <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border border-indigo-200/50">
+                              <CheckCircle size={10} /> Active
+                            </span>
+                            <span className="text-[9px] font-black text-indigo-600/60 uppercase ml-1">HARI LIBUR</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-start gap-0.5 opacity-80">
+                            <span className="inline-flex items-center gap-1 bg-rose-50/50 text-rose-500 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-100">
+                              <XCircle size={10} /> Not Active
+                            </span>
+                            <span className="text-[9px] font-black text-rose-400/60 uppercase ml-1">HARI LIBUR</span>
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="px-8 py-6 whitespace-nowrap">
                       {getStatusBadge(ts.approved_timesheets[0]?.status_approve ?? 0)}
@@ -889,13 +1041,15 @@ export default function ApproveDriver() {
                         >
                           <Eye size={18} />
                         </button>
-                        <button 
-                          onClick={() => handleEditClick(ts)}
-                          className="p-2.5 text-gray-400 hover:text-indigo-600 hover:bg-white rounded-xl transition-all shadow-sm ring-1 ring-transparent hover:ring-indigo-100"
-                          title="Edit Record"
-                        >
-                          <Pencil size={18} />
-                        </button>
+                        {(ts.approved_timesheets[0]?.status_approve ?? 0) !== 1 && (
+                          <button 
+                            onClick={() => handleEditClick(ts)}
+                            className="p-2.5 text-gray-400 hover:text-indigo-600 hover:bg-white rounded-xl transition-all shadow-sm ring-1 ring-transparent hover:ring-indigo-100"
+                            title="Edit Record"
+                          >
+                            <Pencil size={18} />
+                          </button>
+                        )}
                         {(ts.approved_timesheets[0]?.status_approve ?? 0) === 0 ? (
                           <div className="flex items-center gap-1.5 ml-2 border-l border-gray-100 pl-3">
                              <button 

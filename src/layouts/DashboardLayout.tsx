@@ -107,11 +107,20 @@ export default function DashboardLayout() {
             {!sidebarCollapsed && (
               <p className="px-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Navigation</p>
             )}
-            {([
-              { path: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
-              { path: '/dashboard/approve',   icon: Users,          label: 'Approval Center' },
-              { path: '/dashboard/driver',    icon: UserSquare2,    label: 'Driver Database' },
-            ] as const).map(({ path, icon: Icon, label }) => (
+            {(() => {
+              const isSuperAdmin = user.role?.some(r => r.role === 'superadmin');
+              return ([
+                { path: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
+                { path: '/dashboard/approve',   icon: Users,          label: 'Approval Center' },
+                { path: '/dashboard/driver',    icon: UserSquare2,    label: 'Driver Database' },
+                { path: '/dashboard/users',     icon: Users,          label: 'User Management', role: 'superadmin' },
+              ] as const).filter(item => {
+                if (isSuperAdmin) {
+                  return item.role === 'superadmin';
+                }
+                return item.role !== 'superadmin';
+              });
+            })().map(({ path, icon: Icon, label }) => (
               <NavLink
                 key={path}
                 to={path}

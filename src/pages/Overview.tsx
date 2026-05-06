@@ -8,16 +8,25 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Overview() {
+  const { user, token } = useAuth();
   const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
   const navigate = useNavigate();
 
   const fetchTimesheets = async () => {
+    if (!user) return;
     try {
-      const response = await fetch('/api/timesheets');
-      const data = await response.json();
-      setTimesheets(data);
+      const response = await fetch(`${import.meta.env.VITE_URL_API}datatimesheets/${user.code_customer}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const result = await response.json();
+      if (result.status === 'success' || result.status === 200) {
+        setTimesheets(result.data);
+      }
     } catch (err) {
       console.error('Failed to fetch timesheets:', err);
     }
@@ -25,7 +34,7 @@ export default function Overview() {
 
   useEffect(() => {
     fetchTimesheets();
-  }, []);
+  }, [user]);
 
   return (
     <motion.div 
@@ -64,7 +73,7 @@ export default function Overview() {
             </div>
             <p className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Waiting Review</p>
             <p className="text-4xl font-black text-gray-900 tracking-tighter">
-              {timesheets.filter(t => t.status_approved === 0).length}
+              {timesheets.filter(t => (t.approved_timesheets[0]?.status_approve ?? 0) === 0).length}
             </p>
             <div className="mt-6 flex items-center gap-2">
               <div className="h-2 flex-1 bg-gray-100 rounded-full overflow-hidden">
