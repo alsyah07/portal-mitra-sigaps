@@ -30,7 +30,7 @@ export default function UserManagement() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${import.meta.env.VITE_URL}/api/users`, {
+      const response = await fetch(`${import.meta.env.VITE_URL_API}users`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -78,8 +78,8 @@ export default function UserManagement() {
     e.preventDefault();
     try {
       const url = modalMode === 'add' 
-        ? 'http://localhost:3999/api/users' 
-        : `http://localhost:3999/api/users/${currentUser.id_users}`;
+        ? `${import.meta.env.VITE_URL_API}users` 
+        : `${import.meta.env.VITE_URL_API}users/${currentUser.id_users}`;
       
       const method = modalMode === 'add' ? 'POST' : 'PUT';
       
