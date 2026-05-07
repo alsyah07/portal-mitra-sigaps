@@ -970,9 +970,9 @@ export default function ApproveDriver() {
                     </td>
                     <td className="px-8 py-6 whitespace-nowrap">
                        <div className="flex items-center gap-4">
-                         <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100/50 flex items-center justify-center text-blue-600 font-bold text-xs group-hover:scale-110 transition-all duration-500">
+                         {/* <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100/50 flex items-center justify-center text-blue-600 font-bold text-xs group-hover:scale-110 transition-all duration-500">
                            {ts.employee_id.substring(0, 2)}
-                         </div>
+                         </div> */}
                          <div>
                            <div className="font-black text-gray-900 tracking-tight text-[15px]">{drivers.find(d => d.employee_id === ts.employee_id)?.full_name || 'Verified Transport Partner'}</div>
                            <div className="text-[10px] text-blue-600 font-black uppercase tracking-widest mt-0.5">{ts.employee_id}</div>
