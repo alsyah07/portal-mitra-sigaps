@@ -492,7 +492,7 @@ export default function ApproveDriver() {
                               }}
                               className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${!editFormData.time_entry?.includes('07:30:00') ? 'bg-white shadow-sm text-indigo-600 ring-1 ring-indigo-100' : 'text-gray-400 hover:text-gray-600'}`}
                             >
-                              Standard
+                              Custom Entry
                             </button>
                             <button
                               type="button"
