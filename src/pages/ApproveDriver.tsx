@@ -1260,17 +1260,20 @@ export default function ApproveDriver() {
                           </button>
                         )}
                         {(ts.approved_timesheets[0]?.status_approve ?? 0) === 0 ? (
-                          <div className="flex items-center gap-1.5 ml-2 border-l border-gray-100 pl-3">
-                             {ts.time_exit && ts.time_exit !== '-' && (
-                               <button 
-                                 onClick={() => handleApprove(ts.id_timesheets_mitra, 1)}
-                                 className="h-10 w-10 bg-[#1a1f2e] text-white rounded-xl flex items-center justify-center hover:bg-blue-600 transition-all shadow-lg active:scale-90"
-                                 title="Approve Now"
-                               >
-                                 <CheckCircle size={18} />
-                               </button>
-                             )}
-                          </div>
+                           <div className="flex items-center gap-1.5 ml-2 border-l border-gray-100 pl-3">
+                             <button 
+                               disabled={!ts.time_exit || ts.time_exit === '-'}
+                               onClick={() => handleApprove(ts.id_timesheets_mitra, 1)}
+                               className={`h-10 w-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
+                                 (!ts.time_exit || ts.time_exit === '-') 
+                                 ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
+                                 : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100'
+                               }`}
+                               title={(!ts.time_exit || ts.time_exit === '-') ? "Missing Exit Time" : "Approve Now"}
+                             >
+                               <CheckCircle size={18} />
+                             </button>
+                           </div>
                         ) : (
                           <div className="h-10 px-3 flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl">
                             {(ts.approved_timesheets[0]?.status_approve ?? 0) === 1 ? (
