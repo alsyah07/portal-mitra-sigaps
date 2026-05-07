@@ -108,7 +108,7 @@ export default function UserManagement() {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
     
     try {
-      const response = await fetch(`http://localhost:3999/api/users/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_URL_API}users/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
