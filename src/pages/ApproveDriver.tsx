@@ -1167,29 +1167,56 @@ export default function ApproveDriver() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
+              className="relative w-full max-w-5xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
             >
               <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
-                    <Wallet size={24} />
+                <div className="flex items-center gap-5">
+                  <div className="h-14 w-14 rounded-[20px] bg-amber-100 flex items-center justify-center text-amber-600 shadow-sm border border-amber-200/50">
+                    <Wallet size={28} />
                   </div>
                   <div>
                     <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase">Pengeluaran</h3>
-                    <p className="text-xs font-bold text-gray-400 tracking-widest uppercase mt-1">
-                      Logs for {currentExpenseEmployee}
-                    </p>
+                    <div className="flex items-center gap-3 mt-1">
+                      <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase">
+                        Logs for {currentExpenseEmployee}
+                      </p>
+                      {!expensesLoading && expenses.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <div className="h-1 w-1 rounded-full bg-gray-300" />
+                          <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[9px] font-black rounded-lg border border-blue-100 uppercase">{expenses.length} Records</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <button 
-                  onClick={() => setShowExpensesModal(false)}
-                  className="h-10 w-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
-                >
-                  <X size={20} />
-                </button>
+
+                <div className="flex items-center gap-6">
+                  {!expensesLoading && expenses.length > 0 && (
+                    <div className="hidden md:flex flex-col items-end pr-6 border-r border-gray-200">
+                      <span className="text-[9px] font-black text-amber-600 uppercase tracking-[0.2em] mb-1">Total Accumulation</span>
+                      <span className="text-2xl font-black text-gray-900 tracking-tighter">
+                         Rp {expenses.reduce((sum, exp) => sum + (exp.expenses_value || 0), 0).toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  )}
+                  <button 
+                    onClick={() => setShowExpensesModal(false)}
+                    className="h-12 w-12 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-white hover:shadow-sm rounded-2xl transition-all border border-transparent hover:border-gray-200"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
               </div>
 
               <div className="p-8 max-h-[60vh] overflow-y-auto">
+                {/* Mobile Total Display */}
+                {!expensesLoading && expenses.length > 0 && (
+                  <div className="md:hidden mb-6 p-6 bg-amber-50 border border-amber-100 rounded-3xl flex justify-between items-center">
+                    <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Total Accumulation</span>
+                    <span className="text-xl font-black text-gray-900 tracking-tighter">Rp {expenses.reduce((sum, exp) => sum + (exp.expenses_value || 0), 0).toLocaleString('id-ID')}</span>
+                  </div>
+                )}
+
                 {expensesLoading ? (
                   <div className="flex flex-col items-center justify-center py-12 gap-4">
                     <div className="h-10 w-10 border-4 border-amber-100 border-t-amber-500 rounded-full animate-spin" />
@@ -1198,31 +1225,50 @@ export default function ApproveDriver() {
                 ) : expenses.length > 0 ? (
                   <div className="space-y-4">
                     {expenses.map((exp, i) => (
-                      <div key={exp.id} className="p-6 bg-gray-50/50 border border-gray-100 rounded-[2rem] flex items-center justify-between group hover:border-amber-200 hover:bg-white transition-all shadow-sm">
-                        <div className="flex items-center gap-6">
-                           <div className="h-16 w-16 rounded-2xl bg-white border border-gray-200 overflow-hidden shadow-sm">
-                             {exp.expenses_photo_cloud ? (
-                               <img src={exp.expenses_photo_cloud} alt="Receipt" className="h-full w-full object-cover" />
-                             ) : (
-                               <div className="h-full w-full flex items-center justify-center text-gray-300">
-                                 <ReceiptText size={24} />
-                               </div>
-                             )}
-                           </div>
-                           <div className="space-y-1">
-                             <div className="flex items-center gap-2">
-                               <span className="text-xs font-black text-gray-900">{exp.expenses_notes || 'No notes provided'}</span>
-                               <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[9px] font-black rounded-lg border border-blue-100 uppercase">{exp.expenses_type === 1 ? 'Operational' : 'Other'}</span>
+                      <div key={exp.id} className="p-8 bg-gray-50/50 border border-gray-100 rounded-[2.5rem] flex items-center gap-10 group hover:border-amber-200 hover:bg-white transition-all shadow-sm">
+                        {/* Col 1: Photo */}
+                        <div className="h-24 w-24 rounded-[28px] bg-white border border-gray-200 overflow-hidden shadow-sm flex-shrink-0">
+                           {exp.expenses_photo_cloud ? (
+                             <img src={exp.expenses_photo_cloud} alt="Receipt" className="h-full w-full object-cover" />
+                           ) : (
+                             <div className="h-full w-full flex items-center justify-center text-gray-300">
+                               <ReceiptText size={32} />
                              </div>
-                             <div className="flex items-center gap-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                               <span className="flex items-center gap-1"><Clock size={10} /> {new Date(exp.date_expenses).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                               <span className="flex items-center gap-1"><MapPin size={10} /> {exp.lokasi_expenses}</span>
+                           )}
+                        </div>
+
+                        {/* Col 2: Date Calendar Style */}
+                        <div className="flex flex-col items-center justify-center bg-white border border-gray-100 rounded-[24px] px-5 py-4 min-w-[100px] shadow-sm group-hover:border-amber-100 transition-colors">
+                          <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.25em] mb-1.5">{new Date(exp.date_expenses).toLocaleDateString('id-ID', { month: 'short' })}</span>
+                          <span className="text-3xl font-black text-gray-900 leading-none">{new Date(exp.date_expenses).toLocaleDateString('id-ID', { day: '2-digit' })}</span>
+                          <span className="text-[11px] font-bold text-gray-400 mt-1.5 uppercase tracking-widest">{new Date(exp.date_expenses).getFullYear()}</span>
+                        </div>
+
+                        {/* Col 3: Description & Location */}
+                        <div className="flex-1 min-w-0">
+                           <div className="text-[17px] font-black text-gray-900 uppercase tracking-tight mb-2.5 truncate">{exp.expenses_notes || 'General Expense'}</div>
+                           <div className="flex items-center gap-3 text-[11px] font-black text-gray-400 uppercase tracking-[0.15em]">
+                             <div className="h-6 w-6 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-amber-50 group-hover:text-amber-600 transition-colors">
+                               <MapPin size={14} />
                              </div>
+                             {exp.lokasi_expenses}
                            </div>
                         </div>
-                        <div className="text-right">
-                           <div className="text-lg font-black text-gray-900 tracking-tight">Rp {exp.expenses_value?.toLocaleString('id-ID')}</div>
-                           <div className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em] mt-1">Verified Log</div>
+
+                        {/* Col 4: Type Column (DEDICATED) */}
+                        <div className="w-48 flex-shrink-0 flex items-center justify-center">
+                           <div className="px-5 py-2.5 bg-blue-50/50 text-blue-600 text-[11px] font-black rounded-2xl border border-blue-100 uppercase tracking-widest shadow-sm flex items-center gap-2">
+                             <div className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                             {exp.type_pengeluaran}
+                           </div>
+                        </div>
+
+                        {/* Col 5: Value Column */}
+                        <div className="text-right w-48 flex-shrink-0">
+                           <div className="text-3xl font-black text-gray-900 tracking-tighter">Rp {exp.expenses_value?.toLocaleString('id-ID')}</div>
+                           <div className="text-[11px] font-black text-emerald-500 uppercase tracking-[0.2em] mt-2 flex items-center justify-end gap-2">
+                             <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> Verified
+                           </div>
                         </div>
                       </div>
                     ))}
