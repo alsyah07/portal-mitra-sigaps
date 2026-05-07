@@ -108,7 +108,6 @@ export default function DriverTimesheets() {
                 <th className="px-8 py-5">Photo</th>
                 <th className="px-8 py-5">Driver Info</th>
                 <th className="px-8 py-5">Phone</th>
-                <th className="px-8 py-5">Address</th>
                 <th className="px-8 py-5">
                   <div className="flex items-center gap-2">
                     <Calendar size={12} />
@@ -151,9 +150,9 @@ export default function DriverTimesheets() {
                   <td className="px-8 py-6">
                     <span className="text-xs font-bold text-gray-700">{driver.phonenumber || '-'}</span>
                   </td>
-                  <td className="px-8 py-6">
+                  {/* <td className="px-8 py-6">
                     <span className="text-[10px] font-bold text-gray-400 line-clamp-2 max-w-[150px]">{driver.home_address || '-'}</span>
-                  </td>
+                  </td> */}
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-2">
                       <button 
