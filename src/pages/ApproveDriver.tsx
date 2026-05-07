@@ -482,7 +482,7 @@ export default function ApproveDriver() {
                         <div className="bg-white p-4 rounded-2xl border border-indigo-100 flex items-center justify-between shadow-sm">
                           <div>
                             <span className="block text-[10px] font-black text-gray-900 uppercase tracking-widest">Time Policy Setup</span>
-                            <span className="block text-[9px] text-gray-500 font-bold mt-1">Override to fixed schedule (07:00 - 16:00)</span>
+                            <span className="block text-[9px] text-gray-500 font-bold mt-1">Override to fixed entry (07:30)</span>
                           </div>
                           <div className="flex bg-gray-50 p-1.5 rounded-xl border border-gray-100">
                             <button
@@ -490,7 +490,7 @@ export default function ApproveDriver() {
                               onClick={() => {
                                 setEditFormData({...editFormData, time_entry: selectedTimesheet?.time_entry, time_exit: selectedTimesheet?.time_exit});
                               }}
-                              className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${!editFormData.time_entry?.includes('07:00:00') ? 'bg-white shadow-sm text-indigo-600 ring-1 ring-indigo-100' : 'text-gray-400 hover:text-gray-600'}`}
+                              className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${!editFormData.time_entry?.includes('07:30:00') ? 'bg-white shadow-sm text-indigo-600 ring-1 ring-indigo-100' : 'text-gray-400 hover:text-gray-600'}`}
                             >
                               Standard
                             </button>
@@ -498,14 +498,12 @@ export default function ApproveDriver() {
                               type="button"
                               onClick={() => {
                                 let newEntry = editFormData.time_entry;
-                                let newExit = editFormData.time_exit;
-                                if (newEntry) newEntry = newEntry.split(' ')[0] + ' 07:00:00';
-                                if (newExit) newExit = newExit.split(' ')[0] + ' 16:00:00';
-                                setEditFormData({...editFormData, time_entry: newEntry, time_exit: newExit});
+                                if (newEntry) newEntry = newEntry.split(' ')[0] + ' 07:30:00';
+                                setEditFormData({...editFormData, time_entry: newEntry});
                               }}
-                              className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${editFormData.time_entry?.includes('07:00:00') && editFormData.time_exit?.includes('16:00:00') ? 'bg-indigo-600 shadow-md text-white' : 'text-gray-400 hover:text-gray-600'}`}
+                              className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${editFormData.time_entry?.includes('07:30:00') ? 'bg-indigo-600 shadow-md text-white' : 'text-gray-400 hover:text-gray-600'}`}
                             >
-                              Fixed Schedule
+                              Fixed Entry
                             </button>
                           </div>
                         </div>
