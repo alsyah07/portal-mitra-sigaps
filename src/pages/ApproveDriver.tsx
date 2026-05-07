@@ -802,7 +802,7 @@ export default function ApproveDriver() {
                   </button>
                 ) : (ts.approved_timesheets[0]?.status_approve ?? 0) === 0 ? (
                   <>
-                    <button 
+                    {/* <button 
                       onClick={() => handleApprove(ts.id_timesheets_mitra, -1)}
                       className="px-6 py-2.5 rounded-xl font-bold text-sm text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all flex items-center gap-2"
                     >
@@ -813,7 +813,7 @@ export default function ApproveDriver() {
                       className="px-6 py-2.5 rounded-xl font-bold text-sm text-amber-600 bg-amber-50 hover:bg-amber-100 transition-all flex items-center gap-2"
                     >
                       <History size={16} /> Revisi
-                    </button>
+                    </button> */}
                     <button 
                       onClick={() => handleApprove(ts.id_timesheets_mitra, 1)}
                       className="px-6 py-2.5 rounded-xl font-bold text-sm bg-[#1a1f2e] text-white hover:bg-blue-600 transition-all flex items-center gap-2 shadow-lg"
