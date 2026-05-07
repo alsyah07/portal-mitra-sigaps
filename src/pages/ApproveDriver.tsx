@@ -44,6 +44,7 @@ export default function ApproveDriver() {
   const [expensesLoading, setExpensesLoading] = useState(false);
   const [showExpensesModal, setShowExpensesModal] = useState(false);
   const [currentExpenseEmployee, setCurrentExpenseEmployee] = useState<string>('');
+  const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null);
 
   const fetchTimesheets = async () => {
     if (!user) return;
@@ -1227,7 +1228,10 @@ export default function ApproveDriver() {
                     {expenses.map((exp, i) => (
                       <div key={exp.id} className="p-6 bg-gray-50/50 border border-gray-100 rounded-[2rem] flex items-center gap-8 group hover:border-amber-200 hover:bg-white transition-all shadow-sm">
                         {/* Col 1: Photo */}
-                        <div className="h-20 w-20 rounded-[24px] bg-white border border-gray-200 overflow-hidden shadow-sm flex-shrink-0">
+                        <div 
+                          onClick={() => exp.expenses_photo_cloud && setSelectedReceipt(exp.expenses_photo_cloud)}
+                          className="h-20 w-20 rounded-[24px] bg-white border border-gray-200 overflow-hidden shadow-sm flex-shrink-0 cursor-zoom-in hover:scale-105 transition-transform active:scale-95"
+                        >
                            {exp.expenses_photo_cloud ? (
                              <img src={exp.expenses_photo_cloud} alt="Receipt" className="h-full w-full object-cover" />
                            ) : (
@@ -1288,6 +1292,59 @@ export default function ApproveDriver() {
                   className="px-6 py-3 bg-gray-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg active:scale-95"
                 >
                   Close Records
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* Receipt Pop-up Modal */}
+      <AnimatePresence>
+        {selectedReceipt && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedReceipt(null)}
+              className="absolute inset-0 bg-gray-950/90 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative max-w-4xl w-full bg-white rounded-[2rem] overflow-hidden shadow-2xl"
+            >
+              <div className="absolute top-4 right-4 z-10">
+                <button 
+                  onClick={() => setSelectedReceipt(null)}
+                  className="h-12 w-12 flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-xl text-white rounded-2xl transition-all border border-white/20 shadow-xl group"
+                >
+                  <X size={24} className="group-hover:rotate-90 transition-transform duration-300" />
+                </button>
+              </div>
+              <div className="p-2 bg-white">
+                <img 
+                  src={selectedReceipt} 
+                  alt="Full Receipt" 
+                  className="w-full h-auto max-h-[80vh] object-contain rounded-2xl shadow-inner" 
+                />
+              </div>
+              <div className="p-6 bg-gray-50 flex items-center justify-between border-t border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
+                    <ReceiptText size={20} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-gray-900 uppercase tracking-tight">Detail Bukti Pengeluaran</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">High-Resolution Digital Log</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setSelectedReceipt(null)}
+                  className="px-6 py-2 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-500 transition-all shadow-md active:scale-95"
+                >
+                  Close Preview
                 </button>
               </div>
             </motion.div>
