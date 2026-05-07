@@ -109,14 +109,18 @@ export default function DriverTimesheets() {
                 <th className="px-8 py-5">Driver Info</th>
                 <th className="px-8 py-5">Phone</th>
                 <th className="px-8 py-5">Address</th>
-                <th className="px-8 py-5">Deployment</th>
-                <th className="px-8 py-5 text-right">Reports</th>
+                <th className="px-8 py-5">
+                  <div className="flex items-center gap-2">
+                    <Calendar size={12} />
+                    PERIODE SETTLEMENT
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-8 py-20 text-center text-gray-400 font-bold uppercase tracking-widest italic">
+                  <td colSpan={6} className="px-8 py-20 text-center text-gray-400 font-bold uppercase tracking-widest italic">
                     Synchronizing Payroll Data...
                   </td>
                 </tr>
@@ -151,25 +155,29 @@ export default function DriverTimesheets() {
                     <span className="text-[10px] font-bold text-gray-400 line-clamp-2 max-w-[150px]">{driver.home_address || '-'}</span>
                   </td>
                   <td className="px-8 py-6">
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-gray-700">
-                        <Building2 size={12} className="text-gray-400" />
-                        {driver.company_name}
-                      </div>
-                      {/* <div className="flex items-center gap-1.5 text-[10px] font-black text-blue-500 uppercase tracking-widest mt-1">
-                        <Briefcase size={12} className="text-gray-400" />
-                        {driver.company_name}
-                      </div> */}
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => navigate(`/dashboard/timesheets/calculation/${driver.employee_id}?period=2026-05`)}
+                        className="flex items-center gap-1.5 text-[10px] font-black text-white bg-[#6366f1] px-4 py-2 rounded-xl shadow-md shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 uppercase tracking-widest"
+                      >
+                        <Calendar size={12} />
+                        May 2026
+                      </button>
+                      <button 
+                        onClick={() => navigate(`/dashboard/timesheets/calculation/${driver.employee_id}?period=2026-04`)}
+                        className="flex items-center gap-1.5 text-[10px] font-black text-[#3b82f6] bg-white border-2 border-blue-500 px-4 py-2 rounded-xl hover:bg-blue-50 transition-all active:scale-95 uppercase tracking-widest"
+                      >
+                        <Calendar size={12} />
+                        Apr 2026
+                      </button>
+                      <button 
+                        onClick={() => navigate(`/dashboard/timesheets/calculation/${driver.employee_id}?period=2026-03`)}
+                        className="flex items-center gap-1.5 text-[10px] font-black text-[#3b82f6] bg-white border-2 border-blue-500 px-4 py-2 rounded-xl hover:bg-blue-50 transition-all active:scale-95 uppercase tracking-widest"
+                      >
+                        <Calendar size={12} />
+                        Mar 2026
+                      </button>
                     </div>
-                  </td>
-                  <td className="px-8 py-6 text-right">
-                    <button 
-                      onClick={() => navigate(`/dashboard/timesheets/calculation/${driver.employee_id}`)}
-                      className="bg-[#1e3a5f] text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-md active:scale-95 flex items-center gap-2 ml-auto"
-                    >
-                      <FileText size={14} />
-                      View Calculation
-                    </button>
                   </td>
                 </tr>
               ))}

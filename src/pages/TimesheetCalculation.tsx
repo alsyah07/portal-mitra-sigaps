@@ -237,77 +237,67 @@ export default function TimesheetCalculation() {
         </div>
 
         {/* The Giant Calculation Table */}
-        <table className="w-full border-collapse text-[10px]">
+        <table className="w-full border-collapse text-[9px] table-fixed">
           <thead>
-            <tr className="header-blue font-black uppercase tracking-widest text-center">
-              <th rowSpan={2} className="px-3 py-4 border-r border-white/10">No</th>
-              <th rowSpan={2} className="px-3 py-4 border-r border-white/10">Date</th>
-              <th rowSpan={2} className="px-3 py-4 border-r border-white/10">Day</th>
-              <th colSpan={2} className="px-3 py-2 border-r border-white/10 border-b border-white/10">Working Time</th>
-              <th rowSpan={2} className="px-3 py-4 border-r border-white/10">Attendance Fee</th>
-              <th rowSpan={2} className="px-3 py-4 border-r border-white/10">Total Work</th>
-              <th rowSpan={2} className="px-3 py-4 border-r border-white/10">Total Break</th>
-              <th rowSpan={2} className="px-3 py-4 border-r border-white/10">Effective Hour</th>
-              <th rowSpan={2} className="px-3 py-4 border-r border-white/10">Overtime Hour</th>
-              <th colSpan={3} className="px-3 py-2 border-r border-white/10 border-b border-white/10">Overtime Fee</th>
-              <th rowSpan={2} className="px-3 py-4 border-r border-white/10">Transport</th>
-              <th colSpan={2} className="px-3 py-2 border-r border-white/10 border-b border-white/10">Out Of Town</th>
-              <th rowSpan={2} className="px-3 py-4">Remarks</th>
+            <tr className="header-blue font-black uppercase tracking-tight text-center">
+              <th rowSpan={2} className="w-12 px-1 py-3 border-r border-white/10">No.</th>
+              <th colSpan={4} className="px-1 py-2 border-r border-white/10 border-b border-white/10">Working Time</th>
+              <th colSpan={3} className="px-1 py-2 border-r border-white/10 border-b border-white/10">Total Work Time Insentif</th>
+              <th colSpan={4} className="px-1 py-2 border-r border-white/10 border-b border-white/10">Other Daily Insentif</th>
+              <th rowSpan={2} className="w-20 px-1 py-3 border-r border-white/10">Performance Rate</th>
+              <th rowSpan={2} className="px-1 py-3">Remarks</th>
             </tr>
-            <tr className="sub-header-blue font-bold uppercase text-[8px] text-center">
-              <th className="px-2 py-2 border-r border-white/10">In</th>
-              <th className="px-2 py-2 border-r border-white/10">Out</th>
-              <th className="px-2 py-2 border-r border-white/10">Weekdays</th>
-              <th className="px-2 py-2 border-r border-white/10">Weekend</th>
-              <th className="px-2 py-2 border-r border-white/10">Holiday</th>
-              <th className="px-2 py-2 border-r border-white/10">Round Trip</th>
-              <th className="px-2 py-2 border-r border-white/10">Over Night</th>
+            <tr className="sub-header-blue font-bold uppercase text-[7px] text-center">
+              <th className="px-1 py-2 border-r border-white/10">Date</th>
+              <th className="px-1 py-2 border-r border-white/10">Day</th>
+              <th className="px-1 py-2 border-r border-white/10">Start</th>
+              <th className="px-1 py-2 border-r border-white/10">End</th>
+              <th className="px-1 py-2 border-r border-white/10">Work</th>
+              <th className="px-1 py-2 border-r border-white/10">Total</th>
+              <th className="px-1 py-2 border-r border-white/10">Insentif</th>
+              <th className="px-1 py-2 border-r border-white/10">Premium Car</th>
+              <th className="px-1 py-2 border-r border-white/10">VIP User</th>
+              <th className="px-1 py-2 border-r border-white/10">Holiday</th>
+              <th className="px-1 py-2 border-r border-white/10">Religious Day</th>
             </tr>
           </thead>
           <tbody className="font-bold text-gray-700">
             {days.map((day, idx) => (
               <tr 
                 key={idx} 
-                className={`border-b border-gray-100 transition-colors ${
+                className={`border-b border-gray-200 transition-colors ${
                   day.isWeekend ? 'weekend-row' : 'hover:bg-blue-50/30'
                 }`}
               >
-                <td className="px-3 py-2.5 border-r border-gray-100 text-center font-black text-gray-400">{day.no}</td>
-                <td className="px-3 py-2.5 border-r border-gray-100 whitespace-nowrap">{day.date}</td>
-                <td className="px-3 py-2.5 border-r border-gray-100">{day.day}</td>
-                <td className="px-3 py-2.5 border-r border-gray-100 text-center">{day.in}</td>
-                <td className="px-3 py-2.5 border-r border-gray-100 text-center">{day.out}</td>
-                <td className="px-3 py-2.5 border-r border-gray-100 text-center">0</td>
-                <td className="px-3 py-2.5 border-r border-gray-100 text-center">{day.totalWork}</td>
-                <td className="px-3 py-2.5 border-r border-gray-100 text-center">{day.break}</td>
-                <td className="px-3 py-2.5 border-r border-gray-100 text-center">{day.effective}</td>
-                <td className="px-3 py-2.5 border-r border-gray-100 text-center">0</td>
-                <td className="px-3 py-2.5 border-r border-gray-100 text-center">0.00</td>
-                <td className="px-3 py-2.5 border-r border-gray-100 text-center">-</td>
-                <td className="px-3 py-2.5 border-r border-gray-100 text-center">-</td>
-                <td className="px-3 py-2.5 border-r border-gray-100 text-center">0</td>
-                <td className="px-3 py-2.5 border-r border-gray-100 text-center">0</td>
-                <td className="px-3 py-2.5 border-r border-gray-100 text-center">0</td>
-                <td className="px-3 py-2.5 italic text-gray-400 text-[8px]">-</td>
+                <td className="px-2 py-2 border-r border-gray-200 text-center font-black text-gray-400">{day.no}</td>
+                <td className="px-2 py-2 border-r border-gray-200 whitespace-nowrap text-center">{day.date}</td>
+                <td className="px-2 py-2 border-r border-gray-200 text-center">{day.day}</td>
+                <td className="px-2 py-2 border-r border-gray-200 text-center">{day.in}</td>
+                <td className="px-2 py-2 border-r border-gray-200 text-center">{day.out}</td>
+                <td className="px-2 py-2 border-r border-gray-200 text-center">{day.totalWork}</td>
+                <td className="px-2 py-2 border-r border-gray-200 text-center">{day.effective}</td>
+                <td className="px-2 py-2 border-r border-gray-200 text-center">{!day.isWeekend ? '198,000' : ''}</td>
+                <td className="px-2 py-2 border-r border-gray-200 text-center">{!day.isWeekend && idx % 3 === 0 ? '40,000' : ''}</td>
+                <td className="px-2 py-2 border-r border-gray-200 text-center">{!day.isWeekend && idx % 5 === 0 ? '50,000' : ''}</td>
+                <td className="px-2 py-2 border-r border-gray-200 text-center italic text-gray-300">-</td>
+                <td className="px-2 py-2 border-r border-gray-200 text-center italic text-gray-300">-</td>
+                <td className="px-2 py-2 border-r border-gray-200 text-center">{!day.isWeekend ? (3.5 + (idx % 10) / 10).toFixed(2) : ''}</td>
+                <td className="px-2 py-2 italic text-gray-400 text-[8px]">-</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
-             <tr className="footer-dark font-black uppercase text-[9px]">
-               <td colSpan={3} className="px-3 py-4 text-center">Total 31 Days</td>
-               <td colSpan={2} className="px-3 py-4 text-center italic text-white/50">Aggregated Time</td>
-               <td className="px-3 py-4 text-center">Rp 0</td>
-               <td className="px-3 py-4 text-center">180:00</td>
-               <td className="px-3 py-4 text-center">20:00</td>
-               <td className="px-3 py-4 text-center">160:00</td>
-               <td className="px-3 py-4 text-center">0</td>
-               <td className="px-3 py-4 text-center">Rp 0.00</td>
-               <td className="px-3 py-4 text-center">-</td>
-               <td className="px-3 py-4 text-center">-</td>
-               <td className="px-3 py-4 text-center">Rp 0</td>
-               <td className="px-3 py-4 text-center">0</td>
-               <td className="px-3 py-4 text-center">0</td>
-               <td className="px-3 py-4 text-center">Generated Report</td>
+             <tr className="footer-dark font-black uppercase text-[9px] text-center">
+               <td colSpan={5} className="px-2 py-4">Summary Totals</td>
+               <td className="px-2 py-4">12:00</td>
+               <td className="px-2 py-4 italic text-white/50">-</td>
+               <td className="px-2 py-4">3,330,000</td>
+               <td className="px-2 py-4">320,000</td>
+               <td className="px-2 py-4">300,000</td>
+               <td className="px-2 py-4">-</td>
+               <td className="px-2 py-4">-</td>
+               <td className="px-2 py-4">3.70</td>
+               <td className="px-2 py-4">Generated Report</td>
              </tr>
           </tfoot>
         </table>

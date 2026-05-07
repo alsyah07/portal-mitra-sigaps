@@ -138,10 +138,11 @@ export default function DriverDatabase() {
               <tr>
                 <th className="px-8 py-5">No</th>
                 <th className="px-8 py-5">Photo</th>
+                <th className="px-8 py-5">Usia</th>
+                <th className="px-8 py-5">No. KTP</th>
                 <th className="px-8 py-5">Profile</th>
                 <th className="px-8 py-5">Phone</th>
                 <th className="px-8 py-5">Address</th>
-                <th className="px-8 py-5">Company / Project</th>
                 <th className="px-8 py-5 text-right">Actions</th>
               </tr>
             </thead>
@@ -191,11 +192,27 @@ export default function DriverDatabase() {
                       </div>
                     </td>
                     <td className="px-8 py-6">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <Clock size={12} className="text-gray-400" />
+                          <span className="text-xs font-bold text-gray-700">{driver.usia} Tahun</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <IdCard size={12} className="text-gray-400" />
+                          <span className="text-xs font-bold text-gray-700">{driver.ktp_number}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
                       <div 
                         onClick={() => setSelectedDriver(driver)}
                         className="flex flex-col cursor-pointer group/profile"
                       >
-                        <span className="text-sm font-black text-gray-900 tracking-tight group-hover/profile:text-blue-600 transition-colors">{driver.nama_lengkap}</span>
+                        <span className="text-sm font-black text-blue-600 hover:underline tracking-tight transition-all">{driver.nama_lengkap}</span>
                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">{driver.employee_id}</span>
                       </div>
                     </td>
@@ -205,18 +222,7 @@ export default function DriverDatabase() {
                     <td className="px-8 py-6">
                       <span className="text-[10px] font-bold text-gray-400 line-clamp-2 max-w-[150px]">{driver.home_address || '-'}</span>
                     </td>
-                    <td className="px-8 py-6">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5">
-                          <Building2 size={12} className="text-gray-400" />
-                          <span className="text-xs font-bold text-gray-700 truncate max-w-[200px]">{driver.company_name}</span>
-                        </div>
-                        {/* <div className="flex items-center gap-1.5">
-                          <Briefcase size={12} className="text-gray-400" />
-                          <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{driver.iwo_name}</span>
-                        </div> */}
-                      </div>
-                    </td>
+
                     <td className="px-8 py-6 text-right">
                       <div className="flex justify-end gap-2">
                         <button 
