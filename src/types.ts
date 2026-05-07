@@ -56,6 +56,27 @@ export interface LokasiTimesheet {
   long_keluar: string;
 }
 
+export interface UserRating {
+  id: number;
+  employee_id: string;
+  passenger_name: string;
+  service_date: string;
+  vehicle_plate: string;
+  q1_score: number;
+  q2_score: number;
+  q3_score: number;
+  q4_score: number;
+  q5_score: number;
+  q6_score: number;
+  q7_score: number;
+  q8_score: number;
+  q9_score: number | null;
+  q10_comment: string | null;
+  average_score: string;
+  is_bonus_qualified: boolean;
+  created_at: string;
+}
+
 export interface Timesheet {
   id_timesheets_mitra: number;
   employee_id: string;
@@ -76,4 +97,5 @@ export interface Timesheet {
   approved_timesheets: ApprovedTimesheet[];
   foto_timesheets: FotoTimesheet[];
   lokasi_timesheets: LokasiTimesheet[];
+  user_ratings?: UserRating[];
 }

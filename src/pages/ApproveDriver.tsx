@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Timesheet } from '../types';
+import { Timesheet, UserRating } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import Swal from 'sweetalert2';
 import { 
@@ -20,6 +20,7 @@ import {
   Wallet,
   ReceiptText,
   Banknote,
+  Star,
   X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -45,9 +46,13 @@ export default function ApproveDriver() {
   const [showExpensesModal, setShowExpensesModal] = useState(false);
   const [currentExpenseEmployee, setCurrentExpenseEmployee] = useState<string>('');
   const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingList, setRatingList] = useState<UserRating[]>([]);
+  const [selectedRating, setSelectedRating] = useState<UserRating | null>(null);
 
   const fetchTimesheets = async () => {
     if (!user) return;
+    console.log('URL : ', import.meta.env.VITE_URL_API + "datatimesheets/" + user.code_customer);
     try {
       const response = await fetch(`${import.meta.env.VITE_URL_API}datatimesheets/${user.code_customer}`, {
         headers: {
@@ -824,6 +829,159 @@ export default function ApproveDriver() {
       </AnimatePresence>
     );
   };
+  const renderRatingModal = () => {
+    if (ratingList.length === 0) return null;
+
+    const questions = [
+      { id: 'q1_score', label: 'Driving Safety' },
+      { id: 'q2_score', label: 'Technical Skills' },
+      { id: 'q3_score', label: 'Vehicle Condition' },
+      { id: 'q4_score', label: 'Communication' },
+      { id: 'q5_score', label: 'Punctuality' },
+      { id: 'q6_score', label: 'Personal Appearance' },
+      { id: 'q7_score', label: 'Etiquette' },
+      { id: 'q8_score', label: 'Documentation' },
+    ];
+
+    return (
+      <AnimatePresence>
+        {showRatingModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowRatingModal(false)}
+              className="absolute inset-0 bg-[#0a0a0b]/80 backdrop-blur-xl"
+            />
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-xl bg-white rounded-[40px] shadow-2xl overflow-hidden border border-gray-100"
+            >
+              {/* Header */}
+              <div className="p-8 bg-[#fcfcfa] border-b border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-5">
+                  <div className="h-14 w-14 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-500">
+                    <Star size={28} className="fill-amber-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-gray-900 tracking-tight">
+                      {selectedRating ? 'Rating Details' : 'Passenger Ratings'}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      {selectedRating ? (
+                        <>
+                          <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-100 uppercase tracking-widest">Score: {selectedRating.average_score}</span>
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{selectedRating.passenger_name} • {selectedRating.vehicle_plate}</span>
+                        </>
+                      ) : (
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{ratingList.length} total feedback received</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowRatingModal(false)}
+                  className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-100 text-gray-400 hover:bg-rose-50 hover:text-rose-500 transition-all"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-8">
+                {!selectedRating ? (
+                  /* List View */
+                  <div className="space-y-4">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Select Passenger Feedback</p>
+                    <div className="grid grid-cols-1 gap-3">
+                      {ratingList.map((rate) => (
+                        <button
+                          key={rate.id}
+                          onClick={() => setSelectedRating(rate)}
+                          className="flex items-center justify-between p-5 bg-gray-50/50 border border-gray-100 rounded-3xl hover:bg-amber-50 hover:border-amber-200 transition-all group/item"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-amber-500 group-hover/item:scale-110 transition-transform">
+                              <Star size={18} className="fill-amber-500" />
+                            </div>
+                            <div className="text-left">
+                              <div className="text-sm font-black text-gray-900">{rate.passenger_name}</div>
+                              <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{rate.vehicle_plate} • {new Date(rate.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <div className="text-sm font-black text-amber-600">{rate.average_score}</div>
+                              <div className="text-[8px] font-black text-amber-600/50 uppercase tracking-tighter">Avg Score</div>
+                            </div>
+                            <ChevronRight size={18} className="text-gray-300 group-hover/item:text-amber-500 transition-colors" />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  /* Detail View */
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      {questions.map((q) => (
+                        <div key={q.id} className="p-4 bg-gray-50/50 border border-gray-100 rounded-2xl flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{q.label}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-black text-gray-900">{selectedRating[q.id as keyof UserRating]}</span>
+                            <Star size={12} className="fill-amber-500 text-amber-500" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {selectedRating.q10_comment && (
+                      <div className="p-6 bg-blue-50/30 border border-blue-100/50 rounded-3xl space-y-2">
+                        <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Additional Feedback</h4>
+                        <p className="text-sm font-bold text-gray-700 leading-relaxed italic">"{selectedRating.q10_comment}"</p>
+                      </div>
+                    )}
+                    
+                    {/* <div className="flex items-center justify-between pt-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`h-2.5 w-2.5 rounded-full ${selectedRating.is_bonus_qualified ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`} />
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                          Bonus Eligibility: {selectedRating.is_bonus_qualified ? 'QUALIFIED' : 'NOT ELIGIBLE'}
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">Submitted on {new Date(selectedRating.created_at).toLocaleDateString()}</span>
+                    </div> */}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-between gap-4">
+                {selectedRating && ratingList.length > 1 && (
+                  <button 
+                    onClick={() => setSelectedRating(null)}
+                    className="px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm hover:bg-gray-50 transition-all flex items-center gap-2"
+                  >
+                    <ChevronLeft size={16} /> Back to List
+                  </button>
+                )}
+                <button 
+                  onClick={() => setShowRatingModal(false)}
+                  className="ml-auto px-8 py-3 bg-[#1a1f2e] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-blue-600 transition-all active:scale-95"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    );
+  };
 
   return (
     <motion.div 
@@ -833,6 +991,7 @@ export default function ApproveDriver() {
       className="space-y-8 max-w-full mx-auto"
     >
       {renderDetailModal()}
+      {renderRatingModal()}
 
       <div className="flex items-end justify-between">
         <div className="space-y-1">
@@ -950,6 +1109,7 @@ export default function ApproveDriver() {
                   <th className="px-8 py-5">VIP</th>   
                   <th className="px-8 py-5">Hari Raya</th>
                   <th className="px-8 py-5">Hari Libur</th>
+                  <th className="px-8 py-5">Rating</th>
                   <th className="px-8 py-5 text-right">Actions</th>
                 </tr>
               </thead>
@@ -1047,6 +1207,32 @@ export default function ApproveDriver() {
                         <span className="inline-flex items-center gap-1 bg-rose-50/50 text-rose-500 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-100 opacity-60">
                           <XCircle size={10} /> Tidak
                         </span>
+                      )}
+                    </td>
+                    <td className="px-8 py-6 whitespace-nowrap">
+                      {ts.user_ratings && ts.user_ratings.length > 0 ? (
+                        <button 
+                          onClick={() => {
+                            setRatingList(ts.user_ratings || []);
+                            setSelectedRating(ts.user_ratings && ts.user_ratings.length === 1 ? ts.user_ratings[0] : null);
+                            setShowRatingModal(true);
+                          }}
+                          className="flex items-center gap-2 bg-amber-50 text-amber-600 px-4 py-2 rounded-xl text-[10px] font-black border border-amber-200/50 hover:bg-amber-100 transition-all shadow-sm group/rate"
+                        >
+                          <Star size={14} className="fill-amber-500 text-amber-500 group-hover/rate:rotate-12 transition-transform" />
+                          LIHAT RATING
+                          <span className="ml-auto flex items-center gap-1 bg-amber-100/50 px-2 py-1 rounded-lg border border-amber-200/50 shadow-inner">
+                            <span className="text-[11px] font-black text-amber-700">
+                              {ts.user_ratings.length > 1 
+                                ? (ts.user_ratings.reduce((acc, curr) => acc + parseFloat(curr.average_score), 0) / ts.user_ratings.length).toFixed(2)
+                                : ts.user_ratings[0].average_score
+                              }
+                            </span>
+                            <Star size={10} className="fill-amber-500 text-amber-500" />
+                          </span>
+                        </button>
+                      ) : (
+                        <span className="text-[10px] font-bold text-gray-300 italic tracking-widest">N/A</span>
                       )}
                     </td>
                     <td className="px-8 py-6 text-right whitespace-nowrap">
@@ -1270,9 +1456,6 @@ export default function ApproveDriver() {
                         {/* Col 5: Value Column */}
                         <div className="text-right w-40 flex-shrink-0">
                            <div className="text-[22px] font-black text-gray-900 tracking-tighter leading-none">Rp {exp.expenses_value?.toLocaleString('id-ID')}</div>
-                           <div className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mt-1.5 flex items-center justify-end gap-1.5">
-                             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Verified
-                           </div>
                         </div>
                       </div>
                     ))}
