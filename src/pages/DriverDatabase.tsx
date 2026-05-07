@@ -38,22 +38,31 @@ export default function DriverDatabase() {
     try {
       setLoading(true);
       const response = await fetch(`${import.meta.env.VITE_URL_API_DRIVER}drivers/code_company/${user.code_customer}`);
+      console.log(`${import.meta.env.VITE_URL_API_DRIVER}drivers/code_company/${user.code_customer}`);
       const result = await response.json();
       
       if (result.data) {
         // Map the new API structure to our Driver interface
         const mappedDrivers: Driver[] = result.data.map((d: any) => ({
-          id: d.id,
+          id: d.employee_id,
           driver_code: d.employee_id,
           employee_id: d.employee_id,
           nama_lengkap: d.full_name,
-          phone: '-', // Phone not in new API
-          foto: null, 
+          phone: d.phonenumber || '-',
+          foto: d.photo, 
           status: 'Active',
           company_name: d.company_name,
           iwo_name: d.iwo_name,
           user_name: d.user_name,
-          code_customer: d.code_customer
+          code_customer: d.code_customer,
+          phonenumber: d.phonenumber,
+          home_address: d.home_address,
+          phone_number2: d.phone_number2,
+          phone_number3: d.phone_number3,
+          ktp_number: d.ktp_number,
+          birth_date: d.birth_date,
+          usia: d.usia,
+          company_id: d.company_id
         }));
         setDrivers(mappedDrivers);
       }
@@ -128,8 +137,10 @@ export default function DriverDatabase() {
             <thead className="bg-[#fcfcfa]/80 text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] border-b border-gray-100">
               <tr>
                 <th className="px-8 py-5">No</th>
-                <th className="px-8 py-5">Employee ID</th>
+                <th className="px-8 py-5">Photo</th>
                 <th className="px-8 py-5">Profile</th>
+                <th className="px-8 py-5">Phone</th>
+                <th className="px-8 py-5">Address</th>
                 <th className="px-8 py-5">Company / Project</th>
                 <th className="px-8 py-5 text-right">Actions</th>
               </tr>
@@ -137,7 +148,7 @@ export default function DriverDatabase() {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-8 py-20 text-center">
+                  <td colSpan={7} className="px-8 py-20 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <div className="h-10 w-10 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
                       <p className="text-sm font-bold text-gray-400 uppercase tracking-widest italic">Synchronizing Cluster...</p>
@@ -146,7 +157,7 @@ export default function DriverDatabase() {
                 </tr>
               ) : paginatedDrivers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-8 py-20 text-center">
+                  <td colSpan={7} className="px-8 py-20 text-center">
                     <div className="flex flex-col items-center gap-2">
                        <Search size={32} className="text-gray-200" />
                        <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No matching records found.</p>
@@ -164,34 +175,35 @@ export default function DriverDatabase() {
                   >
                     <td className="px-8 py-6 text-xs font-black text-gray-300">{(driverPage - 1) * driverItemsPerPage + index + 1}</td>
                     <td className="px-8 py-6">
-                      <button 
+                      <div 
                         onClick={() => setSelectedDriver(driver)}
-                        className="text-sm font-black text-gray-900 tracking-tight bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-blue-600 hover:text-white hover:border-blue-700 transition-all active:scale-95"
+                        className="relative shrink-0 w-fit cursor-pointer group/photo hover:scale-110 transition-all duration-300"
                       >
-                        {driver.employee_id}
-                      </button>
+                        <div className="h-12 w-12 rounded-2xl p-0.5 bg-gradient-to-tr from-blue-500 to-indigo-600 shadow-md group-hover/photo:shadow-blue-200">
+                          <img 
+                            src={driver.foto || `https://ui-avatars.com/api/?name=${driver.nama_lengkap}&background=fff&color=1e3a5f&bold=true&font-size=0.4`} 
+                            alt={driver.nama_lengkap}
+                            className="w-full h-full rounded-[14px] object-cover bg-white"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-white" title="Active" />
+                      </div>
                     </td>
                     <td className="px-8 py-6">
                       <div 
                         onClick={() => setSelectedDriver(driver)}
-                        className="flex items-center gap-4 cursor-pointer group/profile"
+                        className="flex flex-col cursor-pointer group/profile"
                       >
-                        <div className="relative shrink-0">
-                          <div className="h-12 w-12 rounded-2xl p-0.5 bg-gradient-to-tr from-blue-500 to-indigo-600 group-hover/profile:rotate-6 transition-transform shadow-md">
-                            <img 
-                              src={driver.foto || `https://ui-avatars.com/api/?name=${driver.nama_lengkap}&background=fff&color=1e3a5f&bold=true&font-size=0.4`} 
-                              alt={driver.nama_lengkap}
-                              className="w-full h-full rounded-[14px] object-cover bg-white"
-                              referrerPolicy="no-referrer"
-                            />
-                          </div>
-                          <div className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-white" title="Active" />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-black text-gray-900 tracking-tight group-hover/profile:text-blue-600 transition-colors">{driver.nama_lengkap}</span>
-                          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">{driver.employee_id}</span>
-                        </div>
+                        <span className="text-sm font-black text-gray-900 tracking-tight group-hover/profile:text-blue-600 transition-colors">{driver.nama_lengkap}</span>
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">{driver.employee_id}</span>
                       </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <span className="text-xs font-bold text-gray-700">{driver.phonenumber || '-'}</span>
+                    </td>
+                    <td className="px-8 py-6">
+                      <span className="text-[10px] font-bold text-gray-400 line-clamp-2 max-w-[150px]">{driver.home_address || '-'}</span>
                     </td>
                     <td className="px-8 py-6">
                       <div className="flex flex-col gap-1">
@@ -309,6 +321,7 @@ export default function DriverDatabase() {
                 </div>
 
                 <div className="mt-10 grid grid-cols-2 gap-6">
+                  {/* Identification Card */}
                   <div className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 group hover:border-blue-200 transition-colors">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="p-2.5 bg-white rounded-xl text-blue-600 shadow-sm">
@@ -321,25 +334,44 @@ export default function DriverDatabase() {
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Employee Code</p>
                         <p className="text-sm font-black text-gray-900 tracking-tight mt-0.5">{selectedDriver.employee_id}</p>
                       </div>
+                      <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">KTP Number</p>
+                        <p className="text-sm font-black text-gray-900 tracking-tight mt-0.5">{selectedDriver.ktp_number || '-'}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Birth Date</p>
+                          <p className="text-sm font-black text-gray-900 tracking-tight mt-0.5">{selectedDriver.birth_date || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Age</p>
+                          <p className="text-sm font-black text-gray-900 tracking-tight mt-0.5">{selectedDriver.usia || '-'} Years</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
+                  {/* Deployment Card */}
                   <div className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 group hover:border-indigo-200 transition-colors">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="p-2.5 bg-white rounded-xl text-indigo-600 shadow-sm">
                         <Building2 size={18} />
                       </div>
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Deployment</span>
+                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Contact & Deployment</span>
                     </div>
                     <div className="space-y-4">
                       <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Company Unit</p>
-                        <p className="text-sm font-black text-gray-900 tracking-tight mt-0.5">{selectedDriver.company_name}</p>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Phone Number</p>
+                        <p className="text-sm font-black text-gray-900 tracking-tight mt-0.5">{selectedDriver.phonenumber || '-'}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Project Name (IWO)</p>
-                        <p className="text-sm font-black text-indigo-600 tracking-tight mt-0.5">{selectedDriver.iwo_name}</p>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Home Address</p>
+                        <p className="text-[11px] font-bold text-gray-600 tracking-tight mt-0.5 leading-relaxed">{selectedDriver.home_address || '-'}</p>
                       </div>
+                      {/* <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Company Unit</p>
+                        <p className="text-sm font-black text-gray-900 tracking-tight mt-0.5">{selectedDriver.company_name}</p>
+                      </div> */}
                     </div>
                   </div>
                 </div>
@@ -351,7 +383,7 @@ export default function DriverDatabase() {
                     </div>
                     <div>
                       <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Customer Name</p>
-                      <p className="text-sm font-black text-gray-900 tracking-tight">{selectedDriver.user_name}</p>
+                      <p className="text-sm font-black text-gray-900 tracking-tight">{selectedDriver.company_name}</p>
                     </div>
                   </div>
                   {/* <button className="h-10 w-10 bg-white hover:bg-blue-600 hover:text-white rounded-xl flex items-center justify-center text-blue-600 transition-all shadow-sm active:scale-95">

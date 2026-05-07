@@ -36,13 +36,15 @@ export default function DriverTimesheets() {
           driver_code: d.employee_id,
           employee_id: d.employee_id,
           nama_lengkap: d.full_name,
-          phone: '-',
+          phone: d.phonenumber || '-',
           foto: d.photo || null,
           status: 'Active',
           company_name: d.company_name,
           iwo_name: d.iwo_name,
           user_name: d.user_name,
-          code_customer: d.code_customer
+          code_customer: d.code_customer,
+          phonenumber: d.phonenumber,
+          home_address: d.home_address
         }));
         setDrivers(mappedDrivers);
       }
@@ -103,7 +105,10 @@ export default function DriverTimesheets() {
             <thead className="bg-[#fcfcfa]/80 text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] border-b border-gray-100">
               <tr>
                 <th className="px-8 py-5">No</th>
+                <th className="px-8 py-5">Photo</th>
                 <th className="px-8 py-5">Driver Info</th>
+                <th className="px-8 py-5">Phone</th>
+                <th className="px-8 py-5">Address</th>
                 <th className="px-8 py-5">Deployment</th>
                 <th className="px-8 py-5 text-right">Reports</th>
               </tr>
@@ -111,7 +116,7 @@ export default function DriverTimesheets() {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-8 py-20 text-center text-gray-400 font-bold uppercase tracking-widest italic">
+                  <td colSpan={7} className="px-8 py-20 text-center text-gray-400 font-bold uppercase tracking-widest italic">
                     Synchronizing Payroll Data...
                   </td>
                 </tr>
@@ -119,19 +124,31 @@ export default function DriverTimesheets() {
                 <tr key={driver.id} className="hover:bg-blue-50/40 group transition-all">
                   <td className="px-8 py-6 text-xs font-black text-gray-300">{(currentPage - 1) * itemsPerPage + index + 1}</td>
                   <td className="px-8 py-6">
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-xl bg-gray-100 overflow-hidden border border-gray-200">
-                         <img 
-                          src={driver.foto || `https://ui-avatars.com/api/?name=${driver.nama_lengkap}&background=1e3a5f&color=fff&bold=true`} 
-                          alt="" 
-                          className="w-full h-full object-cover"
-                         />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-black text-gray-900">{driver.nama_lengkap}</span>
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{driver.employee_id}</span>
-                      </div>
+                    <div 
+                      onClick={() => navigate(`/dashboard/timesheets/calculation/${driver.employee_id}`)}
+                      className="h-10 w-10 rounded-xl bg-gray-100 overflow-hidden border border-gray-200 cursor-pointer hover:scale-110 transition-transform duration-300"
+                    >
+                       <img 
+                        src={driver.foto || `https://ui-avatars.com/api/?name=${driver.nama_lengkap}&background=1e3a5f&color=fff&bold=true`} 
+                        alt="" 
+                        className="w-full h-full object-cover"
+                       />
                     </div>
+                  </td>
+                  <td className="px-8 py-6">
+                    <div 
+                      onClick={() => navigate(`/dashboard/timesheets/calculation/${driver.employee_id}`)}
+                      className="flex flex-col cursor-pointer group/info"
+                    >
+                      <span className="text-sm font-black text-gray-900 group-hover/info:text-blue-600 transition-colors">{driver.nama_lengkap}</span>
+                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{driver.employee_id}</span>
+                    </div>
+                  </td>
+                  <td className="px-8 py-6">
+                    <span className="text-xs font-bold text-gray-700">{driver.phonenumber || '-'}</span>
+                  </td>
+                  <td className="px-8 py-6">
+                    <span className="text-[10px] font-bold text-gray-400 line-clamp-2 max-w-[150px]">{driver.home_address || '-'}</span>
                   </td>
                   <td className="px-8 py-6">
                     <div className="flex flex-col">
@@ -139,10 +156,10 @@ export default function DriverTimesheets() {
                         <Building2 size={12} className="text-gray-400" />
                         {driver.company_name}
                       </div>
-                      <div className="flex items-center gap-1.5 text-[10px] font-black text-blue-500 uppercase tracking-widest mt-1">
+                      {/* <div className="flex items-center gap-1.5 text-[10px] font-black text-blue-500 uppercase tracking-widest mt-1">
                         <Briefcase size={12} className="text-gray-400" />
-                        {driver.iwo_name}
-                      </div>
+                        {driver.company_name}
+                      </div> */}
                     </div>
                   </td>
                   <td className="px-8 py-6 text-right">

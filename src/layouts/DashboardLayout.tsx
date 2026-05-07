@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  FileCheck, 
   LayoutDashboard, 
   UserSquare2, 
   Users, 
@@ -33,8 +32,10 @@ export default function DashboardLayout() {
         <div className={`flex items-center gap-3 px-5 bg-white border-b border-r border-gray-200 shrink-0 overflow-hidden transition-all duration-300 ${
           sidebarCollapsed ? 'w-[72px] justify-center px-0' : 'w-[220px]'
         }`}>
-          <div className="h-9 w-9 shrink-0 bg-[#1e3a5f] flex items-center justify-center rounded-lg text-white shadow">
-            <FileCheck size={18} strokeWidth={2.5} />
+          <div className={`flex items-center shrink-0 overflow-hidden transition-all duration-300 ${
+            sidebarCollapsed ? 'w-9 h-9' : 'w-12 h-10'
+          }`}>
+            <img src="/logo_sigaps.png" alt="Logo" className="h-full w-full object-contain" />
           </div>
           <AnimatePresence>
             {!sidebarCollapsed && (
@@ -45,8 +46,8 @@ export default function DashboardLayout() {
                 transition={{ duration: 0.18 }}
                 className="flex flex-col leading-tight whitespace-nowrap"
               >
-                <span className="font-black text-[#1e3a5f] tracking-tighter text-lg leading-none">SIGAP</span>
-                <span className="text-[8px] font-black text-gray-400 uppercase tracking-[0.25em]">Driver Portal</span>
+                <span className="font-black text-[#1e3a5f] tracking-tight text-[10px] leading-none uppercase">Portal Mitra</span>
+                <span className="text-[13px] font-black text-blue-600 uppercase tracking-tight">SIGAPS</span>
               </motion.div>
             )}
           </AnimatePresence>

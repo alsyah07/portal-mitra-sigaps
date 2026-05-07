@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User } from '../types';
-import { LogIn, ShieldCheck, Mail, Lock, Loader2 } from 'lucide-react';
+import { LogIn, Mail, Lock, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface LoginProps {
@@ -50,11 +50,12 @@ export default function Login({ onLogin }: LoginProps) {
           <div className="absolute top-0 right-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-blue-600/20 blur-3xl" />
           <div className="absolute bottom-0 left-0 -ml-16 -mb-16 h-64 w-64 rounded-full bg-indigo-600/10 blur-3xl" />
           
-          <div className="relative mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[24px] bg-white/10 backdrop-blur-md border border-white/10 shadow-2xl">
-            <ShieldCheck size={40} className="text-blue-400" />
+          <div className="relative mx-auto mb-6 flex h-20 w-48 items-center justify-center bg-white rounded-2xl shadow-lg p-4 border border-white/20">
+            <img src="/logo_sigaps.png" alt="Logo Sigaps" className="h-full w-auto object-contain" />
           </div>
-          <h1 className="relative text-3xl font-black tracking-tight text-white font-serif italic">Mitra<span className="text-blue-400">Portal</span></h1>
-          <p className="relative mt-2 text-sm font-medium text-gray-400 uppercase tracking-[0.2em]">Management Access</p>
+          <h1 className="relative text-xl font-black tracking-[0.1em] text-white uppercase">
+            Portal Mitra <span className="text-blue-400">SIGAPS</span>
+          </h1>
         </div>
         
         <form onSubmit={handleSubmit} className="p-10">

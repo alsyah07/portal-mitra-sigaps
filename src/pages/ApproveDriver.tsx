@@ -259,7 +259,7 @@ export default function ApproveDriver() {
         return (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700 border border-amber-200/50">
             <div className="h-1 w-1 rounded-full bg-amber-500 animate-pulse" />
-            Menunggu
+            Menunggu Approve
           </span>
         );
     }
@@ -915,7 +915,8 @@ export default function ApproveDriver() {
                   <th className="px-8 py-5">Schedule In/Out</th>
                   <th className="px-8 py-5">Premium</th>   
                   <th className="px-8 py-5">VIP</th>   
-                  <th className="px-8 py-5 whitespace-nowrap">Day Status</th>
+                  <th className="px-8 py-5">Hari Raya</th>
+                  <th className="px-8 py-5">Hari Libur</th>
                   <th className="px-8 py-5">Status</th>
                   <th className="px-8 py-5 text-right">Actions</th>
                 </tr>
@@ -941,8 +942,8 @@ export default function ApproveDriver() {
                            {ts.employee_id.substring(0, 2)}
                          </div>
                          <div>
-                           <div className="font-black text-gray-900 tracking-tight text-[15px]">{ts.employee_id}</div>
-                           <div className="text-[10px] text-blue-600 font-black uppercase tracking-widest mt-0.5">{drivers.find(d => d.employee_id === ts.employee_id)?.full_name || 'Verified Transport Partner'}</div>
+                           <div className="font-black text-gray-900 tracking-tight text-[15px]">{drivers.find(d => d.employee_id === ts.employee_id)?.full_name || 'Verified Transport Partner'}</div>
+                           <div className="text-[10px] text-blue-600 font-black uppercase tracking-widest mt-0.5">{ts.employee_id}</div>
                          </div>
                        </div>
                     </td>
@@ -970,13 +971,13 @@ export default function ApproveDriver() {
                       {ts.is_premium === 1 ? (
                         <div className="flex flex-col items-start gap-1">
                           <span className="inline-flex items-center gap-1 bg-blue-50/80 text-blue-600 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-blue-200/50">
-                            <CheckCircle size={10} /> Active
+                            <CheckCircle size={10} /> Ya
                           </span>
                           {ts.premium_name && <span className="text-[9px] font-bold text-gray-400 truncate max-w-[100px]">{ts.premium_name}</span>}
                         </div>
                       ) : (
                         <span className="inline-flex items-center gap-1 bg-rose-50/50 text-rose-500 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-100">
-                          <XCircle size={10} /> Not Active
+                          <XCircle size={10} /> Tidak
                         </span>
                       )}
                     </td>
@@ -984,50 +985,37 @@ export default function ApproveDriver() {
                       {ts.is_vip === 1 ? (
                         <div className="flex flex-col items-start gap-1">
                           <span className="inline-flex items-center gap-1 bg-amber-50/80 text-amber-600 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-amber-200/50">
-                            <CheckCircle size={10} /> Active
+                            <CheckCircle size={10} /> Ya
                           </span>
                           {ts.vip_name && <span className="text-[9px] font-bold text-gray-400 truncate max-w-[100px]">{ts.vip_name}</span>}
                         </div>
                       ) : (
                         <span className="inline-flex items-center gap-1 bg-rose-50/50 text-rose-500 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-100">
-                          <XCircle size={10} /> Not Active
+                          <XCircle size={10} /> Tidak
                         </span>
                       )}
                     </td>
                     <td className="px-8 py-6 whitespace-nowrap">
-                      <div className="flex flex-col gap-3">
-                        {ts.status_hari_raya === 1 ? (
-                          <div className="flex flex-col items-start gap-0.5">
-                            <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-600 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-200/50">
-                              <CheckCircle size={10} /> Active
-                            </span>
-                            <span className="text-[9px] font-black text-rose-600/60 uppercase ml-1">HARI RAYA</span>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-start gap-0.5 opacity-80">
-                            <span className="inline-flex items-center gap-1 bg-rose-50/50 text-rose-500 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-100">
-                              <XCircle size={10} /> Not Active
-                            </span>
-                            <span className="text-[9px] font-black text-rose-400/60 uppercase ml-1">HARI RAYA</span>
-                          </div>
-                        )}
-
-                        {ts.status_hari_libur === 1 ? (
-                          <div className="flex flex-col items-start gap-0.5">
-                            <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border border-indigo-200/50">
-                              <CheckCircle size={10} /> Active
-                            </span>
-                            <span className="text-[9px] font-black text-indigo-600/60 uppercase ml-1">HARI LIBUR</span>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-start gap-0.5 opacity-80">
-                            <span className="inline-flex items-center gap-1 bg-rose-50/50 text-rose-500 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-100">
-                              <XCircle size={10} /> Not Active
-                            </span>
-                            <span className="text-[9px] font-black text-rose-400/60 uppercase ml-1">HARI LIBUR</span>
-                          </div>
-                        )}
-                      </div>
+                      {ts.status_hari_raya === 1 ? (
+                        <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-600 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-200/50">
+                          <CheckCircle size={10} /> Ya
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 bg-rose-50/50 text-rose-500 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-100 opacity-60">
+                          <XCircle size={10} /> Tidak
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-8 py-6 whitespace-nowrap">
+                      {ts.status_hari_libur === 1 ? (
+                        <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-indigo-200/50">
+                          <CheckCircle size={10} /> Ya
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 bg-rose-50/50 text-rose-500 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-100 opacity-60">
+                          <XCircle size={10} /> Tidak
+                        </span>
+                      )}
                     </td>
                     <td className="px-8 py-6 whitespace-nowrap">
                       {getStatusBadge(ts.approved_timesheets[0]?.status_approve ?? 0)}
@@ -1052,13 +1040,13 @@ export default function ApproveDriver() {
                         )}
                         {(ts.approved_timesheets[0]?.status_approve ?? 0) === 0 ? (
                           <div className="flex items-center gap-1.5 ml-2 border-l border-gray-100 pl-3">
-                             <button 
+                             {/* <button 
                               onClick={() => handleApprove(ts.id_timesheets_mitra, -2)}
                               className="p-2.5 text-gray-400 hover:text-amber-600 hover:bg-white rounded-xl transition-all shadow-sm"
                               title="Revision"
                             >
                               <History size={18} />
-                            </button>
+                            </button> */}
                             <button 
                               onClick={() => handleApprove(ts.id_timesheets_mitra, 1)}
                               className="h-10 w-10 bg-[#1a1f2e] text-white rounded-xl flex items-center justify-center hover:bg-blue-600 transition-all shadow-lg active:scale-90"
@@ -1082,7 +1070,7 @@ export default function ApproveDriver() {
                   </motion.tr>
                 )) : (
                   <tr>
-                    <td colSpan={6} className="px-8 py-24 text-center">
+                    <td colSpan={10} className="px-8 py-24 text-center">
                       <div className="flex flex-col items-center gap-4 text-gray-300">
                         <div className="h-20 w-20 rounded-[28px] bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">
                           <Filter size={32} />

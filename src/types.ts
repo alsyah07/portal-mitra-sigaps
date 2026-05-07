@@ -25,6 +25,14 @@ export interface Driver {
   iwo_name?: string;
   user_name?: string;
   code_customer?: string;
+  phonenumber?: string;
+  home_address?: string;
+  phone_number2?: string;
+  phone_number3?: string;
+  ktp_number?: string;
+  birth_date?: string;
+  usia?: number;
+  company_id?: number;
 }
 
 export interface ApprovedTimesheet {

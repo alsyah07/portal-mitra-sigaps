@@ -30,7 +30,7 @@ export default function UserManagement() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3999/api/users', {
+      const response = await fetch(`${import.meta.env.VITE_URL}/api/users`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
