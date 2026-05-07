@@ -83,7 +83,7 @@ export default function ApproveDriver() {
     setShowExpensesModal(true);
     setExpensesLoading(true);
     try {
-      const response = await fetch(`http://localhost:8299/api/v1/daily-expenses/${employeeId}`);
+      const response = await fetch(`${import.meta.env.VITE_URL_API_DRIVER}daily-expenses/${employeeId}`);
       const result = await response.json();
       if (result.success) {
         setExpenses(result.data);
