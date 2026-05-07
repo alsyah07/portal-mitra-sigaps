@@ -924,7 +924,7 @@ export default function ApproveDriver() {
                       ))}
                     </div>
                   </div>
-                ) : (
+                ) : ( 
                   /* Detail View */
                   <div className="space-y-6">
                     <div className="grid grid-cols-2 gap-4">
