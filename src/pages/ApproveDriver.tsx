@@ -1261,20 +1261,15 @@ export default function ApproveDriver() {
                         )}
                         {(ts.approved_timesheets[0]?.status_approve ?? 0) === 0 ? (
                           <div className="flex items-center gap-1.5 ml-2 border-l border-gray-100 pl-3">
-                             {/* <button 
-                              onClick={() => handleApprove(ts.id_timesheets_mitra, -2)}
-                              className="p-2.5 text-gray-400 hover:text-amber-600 hover:bg-white rounded-xl transition-all shadow-sm"
-                              title="Revision"
-                            >
-                              <History size={18} />
-                            </button> */}
-                            <button 
-                              onClick={() => handleApprove(ts.id_timesheets_mitra, 1)}
-                              className="h-10 w-10 bg-[#1a1f2e] text-white rounded-xl flex items-center justify-center hover:bg-blue-600 transition-all shadow-lg active:scale-90"
-                              title="Approve Now"
-                            >
-                              <CheckCircle size={18} />
-                            </button>
+                             {ts.time_exit && ts.time_exit !== '-' && (
+                               <button 
+                                 onClick={() => handleApprove(ts.id_timesheets_mitra, 1)}
+                                 className="h-10 w-10 bg-[#1a1f2e] text-white rounded-xl flex items-center justify-center hover:bg-blue-600 transition-all shadow-lg active:scale-90"
+                                 title="Approve Now"
+                               >
+                                 <CheckCircle size={18} />
+                               </button>
+                             )}
                           </div>
                         ) : (
                           <div className="h-10 px-3 flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl">
