@@ -17,6 +17,9 @@ import {
   Pencil,
   Truck,
   Ban,
+  Wallet,
+  ReceiptText,
+  Banknote,
   X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -35,6 +38,12 @@ export default function ApproveDriver() {
   const [selectedTimesheet, setSelectedTimesheet] = useState<Timesheet | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editFormData, setEditFormData] = useState<Partial<Timesheet>>({});
+  
+  // Expenses State
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [expensesLoading, setExpensesLoading] = useState(false);
+  const [showExpensesModal, setShowExpensesModal] = useState(false);
+  const [currentExpenseEmployee, setCurrentExpenseEmployee] = useState<string>('');
 
   const fetchTimesheets = async () => {
     if (!user) return;
@@ -65,6 +74,23 @@ export default function ApproveDriver() {
       }
     } catch (err) {
       console.error('Failed to fetch drivers:', err);
+    }
+  };
+
+  const handleShowExpenses = async (employeeId: string) => {
+    setCurrentExpenseEmployee(employeeId);
+    setShowExpensesModal(true);
+    setExpensesLoading(true);
+    try {
+      const response = await fetch(`http://localhost:8299/api/v1/daily-expenses/${employeeId}`);
+      const result = await response.json();
+      if (result.success) {
+        setExpenses(result.data);
+      }
+    } catch (error) {
+      console.error("Error fetching expenses:", error);
+    } finally {
+      setExpensesLoading(false);
     }
   };
 
@@ -232,7 +258,7 @@ export default function ApproveDriver() {
     setIsEditing(true);
   };
 
-  const getStatusBadge = (status: number) => {
+  const getStatusBadge = (status: number, employeeId: string) => {
     switch (status) {
       case 1:
         return (
@@ -257,10 +283,16 @@ export default function ApproveDriver() {
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700 border border-amber-200/50">
-            <div className="h-1 w-1 rounded-full bg-amber-500 animate-pulse" />
-            Menunggu Approve
-          </span>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleShowExpenses(employeeId);
+            }}
+            className="group/status inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[11px] font-bold text-amber-700 border border-amber-200/50 hover:bg-amber-100 transition-all active:scale-95 shadow-sm"
+          >
+            <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+            PENGELUARAN
+          </button>
         );
     }
   };
@@ -546,7 +578,7 @@ export default function ApproveDriver() {
                       <div className="grid grid-cols-2 gap-8">
                         <div>
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Status Saat Ini</p>
-                          {getStatusBadge(ts.approved_timesheets[0]?.status_approve ?? 0)}
+                          {getStatusBadge(ts.approved_timesheets[0]?.status_approve ?? 0, ts.employee_id)}
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Code Customer</p>
@@ -917,7 +949,6 @@ export default function ApproveDriver() {
                   <th className="px-8 py-5">VIP</th>   
                   <th className="px-8 py-5">Hari Raya</th>
                   <th className="px-8 py-5">Hari Libur</th>
-                  <th className="px-8 py-5">Status</th>
                   <th className="px-8 py-5 text-right">Actions</th>
                 </tr>
               </thead>
@@ -1017,11 +1048,16 @@ export default function ApproveDriver() {
                         </span>
                       )}
                     </td>
-                    <td className="px-8 py-6 whitespace-nowrap">
-                      {getStatusBadge(ts.approved_timesheets[0]?.status_approve ?? 0)}
-                    </td>
                     <td className="px-8 py-6 text-right whitespace-nowrap">
                       <div className="flex justify-end gap-2">
+                        <button 
+                          onClick={() => handleShowExpenses(ts.employee_id)}
+                          className="px-3 py-2 text-emerald-600 bg-emerald-50/50 hover:bg-emerald-100 rounded-xl transition-all shadow-sm border border-emerald-100 flex items-center gap-2 active:scale-95 group/exp"
+                          title="Daily Expenses"
+                        >
+                          <Banknote size={16} className="group-hover/exp:scale-110 transition-transform" />
+                          <span className="text-[10px] font-black uppercase tracking-widest">Pengeluaran</span>
+                        </button>
                         <button 
                           onClick={() => setSelectedTimesheet(ts)}
                           className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-white rounded-xl transition-all shadow-sm ring-1 ring-transparent hover:ring-blue-100"
@@ -1070,7 +1106,7 @@ export default function ApproveDriver() {
                   </motion.tr>
                 )) : (
                   <tr>
-                    <td colSpan={10} className="px-8 py-24 text-center">
+                    <td colSpan={9} className="px-8 py-24 text-center">
                       <div className="flex flex-col items-center gap-4 text-gray-300">
                         <div className="h-20 w-20 rounded-[28px] bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">
                           <Filter size={32} />
@@ -1116,6 +1152,102 @@ export default function ApproveDriver() {
           </div>
         </div>
       )}
+      {/* Expenses Modal */}
+      <AnimatePresence>
+        {showExpensesModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowExpensesModal(false)}
+              className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
+            >
+              <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
+                    <Wallet size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase">Pengeluaran</h3>
+                    <p className="text-xs font-bold text-gray-400 tracking-widest uppercase mt-1">
+                      Logs for {currentExpenseEmployee}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowExpensesModal(false)}
+                  className="h-10 w-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-8 max-h-[60vh] overflow-y-auto">
+                {expensesLoading ? (
+                  <div className="flex flex-col items-center justify-center py-12 gap-4">
+                    <div className="h-10 w-10 border-4 border-amber-100 border-t-amber-500 rounded-full animate-spin" />
+                    <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Fetching Expense Records...</p>
+                  </div>
+                ) : expenses.length > 0 ? (
+                  <div className="space-y-4">
+                    {expenses.map((exp, i) => (
+                      <div key={exp.id} className="p-6 bg-gray-50/50 border border-gray-100 rounded-[2rem] flex items-center justify-between group hover:border-amber-200 hover:bg-white transition-all shadow-sm">
+                        <div className="flex items-center gap-6">
+                           <div className="h-16 w-16 rounded-2xl bg-white border border-gray-200 overflow-hidden shadow-sm">
+                             {exp.expenses_photo_cloud ? (
+                               <img src={exp.expenses_photo_cloud} alt="Receipt" className="h-full w-full object-cover" />
+                             ) : (
+                               <div className="h-full w-full flex items-center justify-center text-gray-300">
+                                 <ReceiptText size={24} />
+                               </div>
+                             )}
+                           </div>
+                           <div className="space-y-1">
+                             <div className="flex items-center gap-2">
+                               <span className="text-xs font-black text-gray-900">{exp.expenses_notes || 'No notes provided'}</span>
+                               <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[9px] font-black rounded-lg border border-blue-100 uppercase">{exp.expenses_type === 1 ? 'Operational' : 'Other'}</span>
+                             </div>
+                             <div className="flex items-center gap-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                               <span className="flex items-center gap-1"><Clock size={10} /> {new Date(exp.date_expenses).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                               <span className="flex items-center gap-1"><MapPin size={10} /> {exp.lokasi_expenses}</span>
+                             </div>
+                           </div>
+                        </div>
+                        <div className="text-right">
+                           <div className="text-lg font-black text-gray-900 tracking-tight">Rp {exp.expenses_value?.toLocaleString('id-ID')}</div>
+                           <div className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em] mt-1">Verified Log</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-center opacity-40">
+                    <Wallet size={48} className="text-gray-300 mb-4" />
+                    <p className="font-black text-gray-900 uppercase tracking-widest text-xs">No Expenses Logged</p>
+                    <p className="text-[10px] font-bold text-gray-400 mt-1">This driver has no expense records for the selected period.</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-end">
+                <button 
+                  onClick={() => setShowExpensesModal(false)}
+                  className="px-6 py-3 bg-gray-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg active:scale-95"
+                >
+                  Close Records
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
