@@ -392,6 +392,7 @@ export default function ApproveDriver() {
                           <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Employee ID</label>
                           <input 
                             type="text" 
+                            readOnly
                             required
                             value={editFormData.employee_id || ''}
                             onChange={e => setEditFormData({...editFormData, employee_id: e.target.value})}
@@ -402,6 +403,7 @@ export default function ApproveDriver() {
                           <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Mitra Customer Code</label>
                           <input 
                             type="text" 
+                            readOnly
                             required
                             value={editFormData.code_customer || ''}
                             onChange={e => setEditFormData({...editFormData, code_customer: e.target.value})}
