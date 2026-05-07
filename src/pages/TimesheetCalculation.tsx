@@ -323,7 +323,6 @@ export default function TimesheetCalculation() {
                   className="h-10 w-1.5 bg-gradient-to-b from-blue-600 to-blue-400 rounded-full origin-top" 
                 />
                 Timesheet Calculation
-                <span className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full lowercase tracking-normal">verified report</span>
               </h2>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
