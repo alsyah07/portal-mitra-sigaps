@@ -21,12 +21,15 @@ import {
   ReceiptText,
   Banknote,
   Star,
+  FileText,
   X
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function ApproveDriver() {
   const { user, token } = useAuth();
+  const navigate = useNavigate();
   const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -289,16 +292,30 @@ export default function ApproveDriver() {
         );
       default:
         return (
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              handleShowExpenses(employeeId);
-            }}
-            className="group/status inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[11px] font-bold text-amber-700 border border-amber-200/50 hover:bg-amber-100 transition-all active:scale-95 shadow-sm"
-          >
-            <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-            PENGELUARAN
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleShowExpenses(employeeId);
+              }}
+              className="group/status inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[11px] font-bold text-amber-700 border border-amber-200/50 hover:bg-amber-100 transition-all active:scale-95 shadow-sm"
+            >
+              <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+              PENGELUARAN
+            </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                const now = new Date();
+                const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                navigate(`/dashboard/timesheets/calculation/${employeeId}?period=${currentPeriod}`);
+              }}
+              className="group/status inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-[11px] font-bold text-blue-700 border border-blue-200/50 hover:bg-blue-100 transition-all active:scale-95 shadow-sm"
+            >
+              <FileText size={12} />
+              TIMESHEET
+            </button>
+          </div>
         );
     }
   };
@@ -1244,6 +1261,18 @@ export default function ApproveDriver() {
                         >
                           <Banknote size={16} className="group-hover/exp:scale-110 transition-transform" />
                           <span className="text-[10px] font-black uppercase tracking-widest">Pengeluaran</span>
+                        </button>
+                        <button 
+                          onClick={() => {
+                            const now = new Date();
+                            const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                            navigate(`/dashboard/timesheets/calculation/${ts.employee_id}?period=${currentPeriod}`);
+                          }}
+                          className="px-3 py-2 text-blue-600 bg-blue-50/50 hover:bg-blue-100 rounded-xl transition-all shadow-sm border border-blue-100 flex items-center gap-2 active:scale-95 group/ts"
+                          title="View Monthly Timesheet"
+                        >
+                          <FileText size={16} className="group-hover/ts:scale-110 transition-transform" />
+                          <span className="text-[10px] font-black uppercase tracking-widest">Timesheet</span>
                         </button>
                         <button 
                           onClick={() => setSelectedTimesheet(ts)}
