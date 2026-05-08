@@ -28,29 +28,14 @@ export default function DashboardLayout() {
     <div className="flex flex-col h-screen bg-[#f8f9fa] font-sans text-gray-900 selection:bg-blue-100 selection:text-blue-900">
       {/* ── TOP NAVBAR ── */}
       <header className="flex items-stretch h-[64px] shrink-0 z-50 relative">
-        {/* Logo Zone */}
-        <div className={`flex items-center gap-3 px-5 bg-white border-b border-r border-gray-200 shrink-0 overflow-hidden transition-all duration-300 ${
-          sidebarCollapsed ? 'w-[72px] justify-center px-0' : 'w-[220px]'
+        <div className={`flex items-center justify-center bg-white border-b border-r border-gray-200 shrink-0 overflow-hidden transition-all duration-300 ${
+          sidebarCollapsed ? 'w-[72px]' : 'w-[220px]'
         }`}>
-          <div className={`flex items-center shrink-0 overflow-hidden transition-all duration-300 ${
-            sidebarCollapsed ? 'w-9 h-9' : 'w-12 h-10'
+          <div className={`transition-all duration-300 ${
+            sidebarCollapsed ? 'w-10 h-10' : 'w-32 h-12'
           }`}>
             <img src="/logo_sigaps.png" alt="Logo" className="h-full w-full object-contain" />
           </div>
-          <AnimatePresence>
-            {!sidebarCollapsed && (
-              <motion.div
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -8 }}
-                transition={{ duration: 0.18 }}
-                className="flex flex-col leading-tight whitespace-nowrap"
-              >
-                <span className="font-black text-[#1e3a5f] tracking-tight text-[10px] leading-none uppercase">Portal Mitra</span>
-                <span className="text-[13px] font-black text-blue-600 uppercase tracking-tight">SIGAPS</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
         {/* Hamburger */}
