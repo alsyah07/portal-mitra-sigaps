@@ -449,7 +449,7 @@ export default function ApproveDriver() {
                           </div>
                           <input 
                             placeholder="Pkg Name"
-                            value={editFormData.premium_name || ''}
+                            value={(editFormData.premium_name === 'null' || !editFormData.premium_name) ? '-' : editFormData.premium_name}
                             onClick={e => e.stopPropagation()}
                             onChange={e => setEditFormData({...editFormData, premium_name: e.target.value, is_premium: 1})}
                             className="bg-transparent border-none p-0 text-xs font-bold focus:ring-0 placeholder:text-gray-300"
@@ -467,7 +467,7 @@ export default function ApproveDriver() {
                           </div>
                           <input 
                             placeholder="Unit Name"
-                            value={editFormData.vip_name || ''}
+                            value={(editFormData.vip_name === 'null' || !editFormData.vip_name) ? '-' : editFormData.vip_name}
                             onClick={e => e.stopPropagation()}
                             onChange={e => setEditFormData({...editFormData, vip_name: e.target.value, is_vip: 1})}
                             className="bg-transparent border-none p-0 text-xs font-bold focus:ring-0 placeholder:text-gray-300"
@@ -652,12 +652,12 @@ export default function ApproveDriver() {
                         <div className="flex flex-wrap gap-3">
                           {ts.is_premium === 1 && (
                             <span className="px-4 py-2 bg-blue-50 text-blue-700 text-[11px] font-bold rounded-xl border border-blue-100 flex items-center gap-2 shadow-sm">
-                              <CheckCircle size={14} className="text-blue-500" /> Premium {ts.premium_name ? `(${ts.premium_name})` : ''}
+                              <CheckCircle size={14} className="text-blue-500" /> Premium {(ts.premium_name && ts.premium_name !== 'null') ? `(${ts.premium_name})` : ''}
                             </span>
                           )}
                           {ts.is_vip === 1 && (
                             <span className="px-4 py-2 bg-amber-50 text-amber-700 text-[11px] font-bold rounded-xl border border-amber-100 flex items-center gap-2 shadow-sm">
-                              <CheckCircle size={14} className="text-amber-500" /> VIP {ts.vip_name ? `(${ts.vip_name})` : ''}
+                              <CheckCircle size={14} className="text-amber-500" /> VIP {(ts.vip_name && ts.vip_name !== 'null') ? `(${ts.vip_name})` : ''}
                             </span>
                           )}
                           {ts.status_hari_raya === 1 && (
