@@ -93,7 +93,7 @@ export default function Login({ onLogin }: LoginProps) {
             transition={{ delay: 0.5 }}
             className="text-gray-500 text-xs font-medium"
           >
-            © 2025 Sigap. All Rights Reserved
+            © {new Date().getFullYear()} Sigap. All Rights Reserved
           </motion.p>
         </div>
       </div>
