@@ -502,6 +502,40 @@ export default function ApproveDriver() {
                         <MapPin size={12} /> Work Hour Insentif
                       </h4>
                       <div className="p-8 bg-indigo-50/30 border border-indigo-100/50 rounded-[32px] space-y-8">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Date Timesheet</label>
+                          <input 
+                            type="date" 
+                            required
+                            value={(() => {
+                              if (!editFormData.date_timesheets) return '';
+                              const isUnix = /^\d+$/.test(editFormData.date_timesheets);
+                              const date = isUnix ? new Date(Number(editFormData.date_timesheets) * 1000) : new Date(editFormData.date_timesheets);
+                              const year = date.getFullYear();
+                              const month = String(date.getMonth() + 1).padStart(2, '0');
+                              const day = String(date.getDate()).padStart(2, '0');
+                              return `${year}-${month}-${day}`;
+                            })()}
+                            onChange={e => {
+                              const dateStr = e.target.value;
+                              const newDate = new Date(dateStr);
+                              const isUnix = /^\d+$/.test(editFormData.date_timesheets || '');
+                              const newValue = isUnix ? String(Math.floor(newDate.getTime() / 1000)) : dateStr;
+                              
+                              let updated = { ...editFormData, date_timesheets: newValue };
+                              
+                              if (updated.time_entry?.includes(' ')) {
+                                updated.time_entry = `${dateStr} ${updated.time_entry.split(' ')[1]}`;
+                              }
+                              if (updated.time_exit?.includes(' ')) {
+                                updated.time_exit = `${dateStr} ${updated.time_exit.split(' ')[1]}`;
+                              }
+                              
+                              setEditFormData(updated);
+                            }}
+                            className="w-full px-5 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-100 outline-none transition-all shadow-sm"
+                          />
+                        </div>
                         <div className="bg-white p-4 rounded-2xl border border-indigo-100 flex items-center justify-between shadow-sm">
                           <div>
                             <span className="block text-[10px] font-black text-gray-900 uppercase tracking-widest">Time Policy Setup</span>
