@@ -63,7 +63,8 @@ export default function UserManagement() {
         code_customer: '',
         email: '',
         password: '',
-        status: 1
+        status: 1,
+        role: [{ role: 'customer' } as any]
       });
     }
     setIsModalOpen(true);
@@ -330,16 +331,32 @@ export default function UserManagement() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Status</label>
-                  <select 
-                    className="w-full px-4 py-3 bg-gray-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all font-bold appearance-none"
-                    value={currentUser.status || 1}
-                    onChange={(e) => setCurrentUser({...currentUser, status: parseInt(e.target.value)})}
-                  >
-                    <option value={1}>Active</option>
-                    <option value={0}>Inactive</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Status</label>
+                    <select 
+                      className="w-full px-4 py-3 bg-gray-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all font-bold appearance-none"
+                      value={currentUser.status || 1}
+                      onChange={(e) => setCurrentUser({...currentUser, status: parseInt(e.target.value)})}
+                    >
+                      <option value={1}>Active</option>
+                      <option value={0}>Inactive</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Role</label>
+                    <select 
+                      className="w-full px-4 py-3 bg-gray-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all font-bold appearance-none"
+                      value={currentUser.role?.[0]?.role || 'customer'}
+                      onChange={(e) => setCurrentUser({
+                        ...currentUser, 
+                        role: [{ role: e.target.value } as any]
+                      })}
+                    >
+                      <option value="customer">Customer</option>
+                      <option value="superadmin">Superadmin</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="pt-4 flex gap-3">
