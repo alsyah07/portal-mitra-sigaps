@@ -48,6 +48,7 @@ export default function ApproveDriver() {
   const [expensesLoading, setExpensesLoading] = useState(false);
   const [showExpensesModal, setShowExpensesModal] = useState(false);
   const [currentExpenseEmployee, setCurrentExpenseEmployee] = useState<string>('');
+  const [currentExpenseDate, setCurrentExpenseDate] = useState<string>('');
   const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingList, setRatingList] = useState<UserRating[]>([]);
@@ -88,6 +89,7 @@ export default function ApproveDriver() {
 
   const handleShowExpenses = async (employeeId: string, date: string) => {
     setCurrentExpenseEmployee(employeeId);
+    setCurrentExpenseDate(date);
     setShowExpensesModal(true);
     setExpensesLoading(true);
     setExpenses([]); // Clear previous data
@@ -1393,9 +1395,12 @@ export default function ApproveDriver() {
                   <div>
                     <h3 className="text-lg font-black text-gray-900 tracking-tight uppercase">Pengeluaran</h3>
                     <div className="flex items-center gap-2.5 mt-0.5">
-                      <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase">
-                        Logs for {currentExpenseEmployee}
-                      </p>
+                      <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest">
+                        <span className="text-gray-400">Logs for</span>
+                        <span className="text-blue-600">{currentExpenseEmployee}</span>
+                        <div className="h-1 w-1 rounded-full bg-gray-300" />
+                        <span className="text-gray-900">{formatDate(currentExpenseDate)}</span>
+                      </div>
                       {!expensesLoading && expenses.length > 0 && (
                         <div className="flex items-center gap-2">
                           <div className="h-1 w-1 rounded-full bg-gray-300" />
@@ -1456,12 +1461,7 @@ export default function ApproveDriver() {
                            )}
                         </div>
 
-                        {/* Col 2: Date Calendar Style */}
-                        <div className="flex flex-col items-center justify-center bg-white border border-gray-100 rounded-[20px] px-4 py-3 min-w-[80px] shadow-sm group-hover:border-amber-100 transition-colors">
-                          <span className="text-[9px] font-black text-blue-600 uppercase tracking-[0.2em] mb-1">{new Date(exp.date_expenses).toLocaleDateString('id-ID', { month: 'short' })}</span>
-                          <span className="text-2xl font-black text-gray-900 leading-none">{new Date(exp.date_expenses).toLocaleDateString('id-ID', { day: '2-digit' })}</span>
-                          <span className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">{new Date(exp.date_expenses).getFullYear()}</span>
-                        </div>
+
 
                         {/* Col 3: Description & Location */}
                         <div className="flex-1 min-w-0">
