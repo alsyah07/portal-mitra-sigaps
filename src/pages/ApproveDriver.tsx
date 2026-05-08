@@ -1158,7 +1158,6 @@ export default function ApproveDriver() {
                   <option value="all">Status: Semua</option>
                   <option value="pending">Status: Pending</option>
                   <option value="approved">Status: Approved</option>
-                  <option value="rejected">Status: Rejected</option>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                   <ChevronRight size={14} className="rotate-90" />
