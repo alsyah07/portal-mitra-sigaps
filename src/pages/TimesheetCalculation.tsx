@@ -165,7 +165,18 @@ export default function TimesheetCalculation() {
       const monthNum = dateObj.getMonth();
       const yearNum = dateObj.getFullYear();
       const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
-      const isWeekend = dayName === 'Saturday' || dayName === 'Sunday';
+      const dayIndex = dateObj.getDay(); // 0 (Sun) - 6 (Sat)
+      
+      const workDayConfig = data.agreement?.hari_kerja?.find(hk => {
+        const fbIdx = Number(hk.day_index);
+        return fbIdx === dayIndex || (fbIdx === 7 && dayIndex === 0);
+      });
+
+      const isWeekend = workDayConfig 
+        ? Number(workDayConfig.iwo_workdays_status) !== 1 
+        : (data.agreement?.workDays?.length 
+            ? !data.agreement.workDays.includes(dayName) 
+            : (dayName === 'Saturday' || dayName === 'Sunday'));
       
       const timesheet = data.timesheets.find(ts => {
         if (!ts.date_timesheets) return false;
