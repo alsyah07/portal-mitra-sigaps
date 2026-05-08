@@ -86,13 +86,15 @@ export default function ApproveDriver() {
     }
   };
 
-  const handleShowExpenses = async (employeeId: string) => {
+  const handleShowExpenses = async (employeeId: string, date: string) => {
     setCurrentExpenseEmployee(employeeId);
     setShowExpensesModal(true);
     setExpensesLoading(true);
+    setExpenses([]); // Clear previous data
     try {
-      const response = await fetch(`${import.meta.env.VITE_URL_API_DRIVER}daily-expenses/${employeeId}`);
+      const response = await fetch(`${import.meta.env.VITE_URL_API_DRIVER}daily-expenses-date/${employeeId}/${date}`);
       const result = await response.json();
+      console.log('URL-BON', import.meta.env.VITE_URL_API_DRIVER + "daily-expenses-date/" + employeeId + "/" + date)
       if (result.success) {
         setExpenses(result.data);
       }
@@ -267,7 +269,7 @@ export default function ApproveDriver() {
     setIsEditing(true);
   };
 
-  const getStatusBadge = (status: number, employeeId: string) => {
+  const getStatusBadge = (status: number, employeeId: string, date: string) => {
     switch (status) {
       case 1:
         return (
@@ -296,7 +298,7 @@ export default function ApproveDriver() {
             <button 
               onClick={(e) => {
                 e.stopPropagation();
-                handleShowExpenses(employeeId);
+                handleShowExpenses(employeeId, date);
               }}
               className="group/status inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[11px] font-bold text-amber-700 border border-amber-200/50 hover:bg-amber-100 transition-all active:scale-95 shadow-sm"
             >
@@ -601,7 +603,7 @@ export default function ApproveDriver() {
                       <div className="grid grid-cols-2 gap-8">
                         <div>
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Status Saat Ini</p>
-                          {getStatusBadge(ts.approved_timesheets[0]?.status_approve ?? 0, ts.employee_id)}
+                          {getStatusBadge(ts.approved_timesheets[0]?.status_approve ?? 0, ts.employee_id, ts.date_timesheets)}
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Code Customer</p>
@@ -1255,7 +1257,7 @@ export default function ApproveDriver() {
                     <td className="px-8 py-6 text-right whitespace-nowrap">
                       <div className="flex justify-end gap-2">
                         <button 
-                          onClick={() => handleShowExpenses(ts.employee_id)}
+                          onClick={() => handleShowExpenses(ts.employee_id, ts.date_timesheets)}
                           className="px-3 py-2 text-emerald-600 bg-emerald-50/50 hover:bg-emerald-100 rounded-xl transition-all shadow-sm border border-emerald-100 flex items-center gap-2 active:scale-95 group/exp"
                           title="Daily Expenses"
                         >
