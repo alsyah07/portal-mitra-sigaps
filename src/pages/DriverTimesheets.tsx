@@ -155,27 +155,26 @@ export default function DriverTimesheets() {
                   </td> */}
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => navigate(`/dashboard/timesheets/calculation/${driver.employee_id}?period=2026-05`)}
-                        className="flex items-center gap-1.5 text-[10px] font-black text-white bg-[#6366f1] px-4 py-2 rounded-xl shadow-md shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 uppercase tracking-widest"
-                      >
-                        <Calendar size={12} />
-                        May 2026
-                      </button>
-                      <button 
-                        onClick={() => navigate(`/dashboard/timesheets/calculation/${driver.employee_id}?period=2026-04`)}
-                        className="flex items-center gap-1.5 text-[10px] font-black text-[#3b82f6] bg-white border-2 border-blue-500 px-4 py-2 rounded-xl hover:bg-blue-50 transition-all active:scale-95 uppercase tracking-widest"
-                      >
-                        <Calendar size={12} />
-                        Apr 2026
-                      </button>
-                      <button 
-                        onClick={() => navigate(`/dashboard/timesheets/calculation/${driver.employee_id}?period=2026-03`)}
-                        className="flex items-center gap-1.5 text-[10px] font-black text-[#3b82f6] bg-white border-2 border-blue-500 px-4 py-2 rounded-xl hover:bg-blue-50 transition-all active:scale-95 uppercase tracking-widest"
-                      >
-                        <Calendar size={12} />
-                        Mar 2026
-                      </button>
+                      {Array.from({ length: 3 }).map((_, i) => {
+                        const date = new Date();
+                        const d = new Date(date.getFullYear(), date.getMonth() - i, 1);
+                        const label = d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+                        const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                        
+                        return (
+                          <button 
+                            key={i}
+                            onClick={() => navigate(`/dashboard/timesheets/calculation/${driver.employee_id}?period=${value}`)}
+                            className={i === 0 
+                              ? "flex items-center gap-1.5 text-[10px] font-black text-white bg-[#6366f1] px-4 py-2 rounded-xl shadow-md shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 uppercase tracking-widest"
+                              : "flex items-center gap-1.5 text-[10px] font-black text-[#3b82f6] bg-white border-2 border-blue-500 px-4 py-2 rounded-xl hover:bg-blue-50 transition-all active:scale-95 uppercase tracking-widest"
+                            }
+                          >
+                            <Calendar size={12} />
+                            {label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </td>
                 </tr>
