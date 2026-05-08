@@ -38,7 +38,9 @@ export default function ApproveDriver() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('pending');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [selectedTimesheet, setSelectedTimesheet] = useState<Timesheet | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editFormData, setEditFormData] = useState<Partial<Timesheet>>({});
@@ -347,7 +349,16 @@ export default function ApproveDriver() {
       (statusFilter === 'approved' && currentStatus === 1) ||
       (statusFilter === 'rejected' && currentStatus === -1);
 
-    return matchesSearch && matchesStatus;
+    const tsDateVal = ts.date_timesheets;
+    const isUnix = /^\d+$/.test(tsDateVal);
+    const tsDate = isUnix ? new Date(Number(tsDateVal) * 1000) : new Date(tsDateVal);
+    const tsDateStr = tsDate.getFullYear() + '-' + String(tsDate.getMonth() + 1).padStart(2, '0') + '-' + String(tsDate.getDate()).padStart(2, '0');
+
+    const matchesDate = 
+      (!startDate || tsDateStr >= startDate) &&
+      (!endDate || tsDateStr <= endDate);
+
+    return matchesSearch && matchesStatus && matchesDate;
   });
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -1114,7 +1125,6 @@ export default function ApproveDriver() {
                   onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
                   className="bg-gray-50 border-none text-xs font-bold rounded-lg px-2 py-1 focus:ring-0 cursor-pointer"
                 >
-                  <option value={5}>5</option>
                   <option value={10}>10</option>
                   <option value={25}>25</option>
                   <option value={50}>50</option>
@@ -1142,11 +1152,31 @@ export default function ApproveDriver() {
                 >
                   <option value="pending">Status: Pending</option>
                   <option value="approved">Status: Approved</option>
-                  <option value="rejected">Status: Rejected</option>
-                  <option value="all">Every Status</option>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                   <ChevronRight size={14} className="rotate-90" />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => { setStartDate(e.target.value); setCurrentPage(1); }}
+                    className="border border-gray-200 rounded-xl px-4 py-2 text-xs font-bold bg-white hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                  />
+                  <div className="absolute -top-2 left-2 px-1 bg-white text-[8px] font-black text-gray-400 uppercase tracking-widest">Dari</div>
+                </div>
+                <span className="text-gray-300">/</span>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1); }}
+                    className="border border-gray-200 rounded-xl px-4 py-2 text-xs font-bold bg-white hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                  />
+                  <div className="absolute -top-2 left-2 px-1 bg-white text-[8px] font-black text-gray-400 uppercase tracking-widest">Sampai</div>
                 </div>
               </div>
             </div>
