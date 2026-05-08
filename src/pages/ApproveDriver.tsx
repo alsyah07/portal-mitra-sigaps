@@ -465,7 +465,7 @@ export default function ApproveDriver() {
                           </div>
                           <input 
                             placeholder="Pkg Name"
-                            value={(editFormData.premium_name === 'null' || !editFormData.premium_name) ? '-' : editFormData.premium_name}
+                            value={(editFormData.premium_name === 'null' || !editFormData.premium_name) ? '' : editFormData.premium_name}
                             onClick={e => e.stopPropagation()}
                             onChange={e => setEditFormData({...editFormData, premium_name: e.target.value, is_premium: 1})}
                             className="bg-transparent border-none p-0 text-xs font-bold focus:ring-0 placeholder:text-gray-300"
@@ -483,7 +483,7 @@ export default function ApproveDriver() {
                           </div>
                           <input 
                             placeholder="Unit Name"
-                            value={(editFormData.vip_name === 'null' || !editFormData.vip_name) ? '-' : editFormData.vip_name}
+                            value={(editFormData.vip_name === 'null' || !editFormData.vip_name) ? '' : editFormData.vip_name}
                             onClick={e => e.stopPropagation()}
                             onChange={e => setEditFormData({...editFormData, vip_name: e.target.value, is_vip: 1})}
                             className="bg-transparent border-none p-0 text-xs font-bold focus:ring-0 placeholder:text-gray-300"
