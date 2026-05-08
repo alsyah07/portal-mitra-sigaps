@@ -98,6 +98,7 @@ export interface Timesheet {
   foto_timesheets: FotoTimesheet[];
   lokasi_timesheets: LokasiTimesheet[];
   user_ratings?: UserRating[];
+  expenses_count?: number;
 }
 
 export interface HariKerja {
