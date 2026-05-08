@@ -37,6 +37,7 @@ export default function ApproveDriver() {
   // Data Table State
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('pending');
+  const [driverFilter, setDriverFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [startDate, setStartDate] = useState('');
@@ -358,7 +359,11 @@ export default function ApproveDriver() {
       (!startDate || tsDateStr >= startDate) &&
       (!endDate || tsDateStr <= endDate);
 
-    return matchesSearch && matchesStatus && matchesDate;
+    const matchesDriver = 
+      driverFilter === 'all' || 
+      ts.employee_id === driverFilter;
+
+    return matchesSearch && matchesStatus && matchesDate && matchesDriver;
   });
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -1150,8 +1155,28 @@ export default function ApproveDriver() {
                   onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
                   className="appearance-none border border-gray-200 rounded-xl px-4 py-2 pr-10 text-sm bg-white hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer font-bold"
                 >
+                  <option value="all">Status: Semua</option>
                   <option value="pending">Status: Pending</option>
                   <option value="approved">Status: Approved</option>
+                  <option value="rejected">Status: Rejected</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                  <ChevronRight size={14} className="rotate-90" />
+                </div>
+              </div>
+
+              <div className="relative">
+                <select
+                  value={driverFilter}
+                  onChange={(e) => { setDriverFilter(e.target.value); setCurrentPage(1); }}
+                  className="appearance-none border border-gray-200 rounded-xl px-4 py-2 pr-10 text-sm bg-white hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer font-bold max-w-[200px]"
+                >
+                  <option value="all">Driver: Semua</option>
+                  {drivers.map(driver => (
+                    <option key={driver.employee_id} value={driver.employee_id}>
+                      {driver.full_name}
+                    </option>
+                  ))}
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                   <ChevronRight size={14} className="rotate-90" />
