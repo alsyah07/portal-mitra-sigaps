@@ -930,7 +930,7 @@ export default function ApproveDriver() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-xl bg-white rounded-[40px] shadow-2xl overflow-hidden border border-gray-100"
+              className="relative w-full max-w-2xl bg-white rounded-[40px] shadow-2xl overflow-hidden border border-gray-100 flex flex-col max-h-[85vh]"
             >
               {/* Header */}
               <div className="p-8 bg-[#fcfcfa] border-b border-gray-100 flex items-center justify-between">
@@ -963,33 +963,40 @@ export default function ApproveDriver() {
               </div>
 
               {/* Content */}
-              <div className="p-8">
+              <div className="p-8 flex-1 overflow-y-auto custom-scrollbar bg-gray-50/30">
                 {!selectedRating ? (
                   /* List View */
                   <div className="space-y-4">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Select Passenger Feedback</p>
-                    <div className="grid grid-cols-1 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {ratingList.map((rate) => (
                         <button
                           key={rate.id}
                           onClick={() => setSelectedRating(rate)}
-                          className="flex items-center justify-between p-5 bg-gray-50/50 border border-gray-100 rounded-3xl hover:bg-amber-50 hover:border-amber-200 transition-all group/item"
+                          className="flex flex-col p-6 bg-white border border-gray-100 rounded-3xl hover:bg-amber-50 hover:border-amber-200 transition-all group/item shadow-sm hover:shadow-md"
                         >
-                          <div className="flex items-center gap-4">
-                            <div className="h-10 w-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-amber-500 group-hover/item:scale-110 transition-transform">
+                          <div className="flex items-center justify-between w-full mb-4">
+                            <div className="h-10 w-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-500 group-hover/item:scale-110 transition-transform">
                               <Star size={18} className="fill-amber-500" />
                             </div>
-                            <div className="text-left">
-                              <div className="text-sm font-black text-gray-900">{rate.passenger_name}</div>
-                              <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{rate.vehicle_plate} • {new Date(rate.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                            <div className="text-right">
+                              <div className="text-lg font-black text-amber-600 leading-none">{rate.average_score}</div>
+                              <div className="text-[8px] font-black text-amber-600/50 uppercase tracking-tighter mt-1">Avg Score</div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <div className="text-right">
-                              <div className="text-sm font-black text-amber-600">{rate.average_score}</div>
-                              <div className="text-[8px] font-black text-amber-600/50 uppercase tracking-tighter">Avg Score</div>
+                          
+                          <div className="text-left w-full">
+                            <div className="text-sm font-black text-gray-900 group-hover/item:text-amber-700 transition-colors">{rate.passenger_name}</div>
+                            <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1.5 flex items-center gap-2">
+                              {rate.vehicle_plate}
+                              <div className="h-1 w-1 rounded-full bg-gray-300" />
+                              {new Date(rate.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
-                            <ChevronRight size={18} className="text-gray-300 group-hover/item:text-amber-500 transition-colors" />
+                          </div>
+                          
+                          <div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between w-full">
+                            <span className="text-[8px] font-black text-gray-300 uppercase tracking-[0.2em]">View Details</span>
+                            <ChevronRight size={14} className="text-gray-300 group-hover/item:text-amber-500 group-hover/item:translate-x-1 transition-all" />
                           </div>
                         </button>
                       ))}
@@ -1473,7 +1480,7 @@ export default function ApproveDriver() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-5xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
+              className="relative w-full max-w-5xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
             >
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                 <div className="flex items-center gap-4">
@@ -1517,7 +1524,7 @@ export default function ApproveDriver() {
                 </div>
               </div>
 
-              <div className="p-6 max-h-[60vh] overflow-y-auto">
+              <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
                 {/* Mobile Total Display */}
                 {!expensesLoading && expenses.length > 0 && (
                   <div className="md:hidden mb-4 p-4 bg-amber-50 border border-amber-100 rounded-2xl flex justify-between items-center">
