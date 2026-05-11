@@ -140,6 +140,7 @@ export default function AuditOperasional() {
       case 'UPDATE': return 'bg-amber-50 text-amber-600 border-amber-100';
       case 'INSERT': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
       case 'DELETE': return 'bg-rose-50 text-rose-600 border-rose-100';
+      case 'ROLLBACK': return 'bg-blue-50 text-blue-600 border-blue-100';
       default: return 'bg-gray-50 text-gray-600 border-gray-100';
     }
   };
@@ -477,7 +478,13 @@ export default function AuditOperasional() {
                     
                     // If it's the timesheets_mitra table, show all fields to ensure transparency for rollback
                     if (item.source_table === 'timesheets_mitra') {
-                      return keys.filter(key => key !== 'id_timesheets_mitra');
+                      return keys.filter(key => 
+                        key !== 'id_timesheets_mitra' && 
+                        key !== 'employee_id' && 
+                        key !== 'nama_driver' && 
+                        key !== 'created_at' &&
+                        key !== 'code_customer'
+                      );
                     }
 
                     const changedKeys = newData && oldData && typeof newData === 'object' && typeof oldData === 'object' 
