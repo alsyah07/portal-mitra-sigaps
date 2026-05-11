@@ -354,6 +354,7 @@ export default function UserManagement() {
                       })}
                     >
                       <option value="customer">Customer</option>
+                      <option value="audit">Audit</option>
                       <option value="superadmin">Superadmin</option>
                     </select>
                   </div>

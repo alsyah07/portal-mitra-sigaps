@@ -8,6 +8,8 @@ import ApproveDriver from '../pages/ApproveDriver';
 import UserManagement from '../pages/UserManagement';
 import DriverTimesheets from '../pages/DriverTimesheets';
 import TimesheetCalculation from '../pages/TimesheetCalculation';
+import AuditOperasional from '../pages/AuditOperasional';
+import BackupManagement from '../pages/BackupManagement';
 
 export default function AppRouter() {
   return (
@@ -24,6 +26,8 @@ export default function AppRouter() {
           <Route path="driver" element={<DriverDatabase />} />
           <Route path="timesheets" element={<DriverTimesheets />} />
           <Route path="timesheets/calculation/:employeeId" element={<TimesheetCalculation />} />
+          <Route path="audit-operasional" element={<AuditOperasional />} />
+          <Route path="backups" element={<BackupManagement />} />
           <Route path="users" element={<UserManagement />} />
         </Route>
         

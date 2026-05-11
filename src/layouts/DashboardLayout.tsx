@@ -7,7 +7,9 @@ import {
   Users, 
   Menu, 
   LogOut,
-  Calendar
+  Calendar,
+  Database,
+  RotateCcw
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -94,18 +96,37 @@ export default function DashboardLayout() {
               <p className="px-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Navigation</p>
             )}
             {(() => {
-              const isSuperAdmin = user.role?.some(r => r.role === 'superadmin');
-              return ([
+              const roles = user.role?.map(r => r.role) || [];
+              const isSuperAdmin = roles.includes('superadmin');
+              const isAudit = roles.includes('audit');
+
+              const allMenuItems = [
                 { path: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
                 { path: '/dashboard/approve',   icon: Users,          label: 'Approval Center' },
                 { path: '/dashboard/driver',    icon: UserSquare2,    label: 'Driver Database' },
                 { path: '/dashboard/timesheets', icon: Calendar,      label: 'Timesheets' },
+                { path: '/dashboard/audit-operasional', icon: Database, label: 'Audit Trail', role: 'audit' },
+                { path: '/dashboard/backups', icon: RotateCcw, label: 'Backup Rollback', role: 'audit' },
                 { path: '/dashboard/users',     icon: Users,          label: 'User Management', role: 'superadmin' },
-              ] as const).filter(item => {
+              ] as const;
+
+              return allMenuItems.filter(item => {
+                const roles = user.role?.map(r => r.role) || [];
+                const isSuperAdmin = roles.includes('superadmin');
+                const isAudit = roles.includes('audit');
+
+                // Superadmin ONLY sees User Management and Backups
                 if (isSuperAdmin) {
-                  return item.role === 'superadmin';
+                  return item.label === 'User Management' || item.label === 'Backup Rollback';
                 }
-                return item.role !== 'superadmin';
+                
+                // Audit role ONLY sees Audit Trail
+                if (isAudit) {
+                  return item.label === 'Audit Trail';
+                }
+
+                // Default roles (Customer/Invoice/etc) see standard operational menus
+                return !item.role;
               });
             })().map(({ path, icon: Icon, label }) => (
               <NavLink

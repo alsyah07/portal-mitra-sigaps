@@ -811,10 +811,10 @@ export default function ApproveDriver() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {ts.foto_timesheets[0].foto_km_in && (
                           <div className="space-y-4">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
                               <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                               Bukti Odometer Masuk
-                            </p>
+                            </div>
                             <div className="group relative overflow-hidden rounded-[32px] border-2 border-gray-100 bg-gray-50 shadow-sm transition-all hover:shadow-xl hover:border-blue-200 cursor-zoom-in">
                               <img 
                                 src={ts.foto_timesheets[0].foto_km_in} 
@@ -827,10 +827,10 @@ export default function ApproveDriver() {
                         )}
                         {ts.foto_timesheets[0].foto_km_out && (
                           <div className="space-y-4">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
                               <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
                               Bukti Odometer Keluar
-                            </p>
+                            </div>
                             <div className="group relative overflow-hidden rounded-[32px] border-2 border-gray-100 bg-gray-50 shadow-sm transition-all hover:shadow-xl hover:border-blue-200 cursor-zoom-in">
                               <img 
                                 src={ts.foto_timesheets[0].foto_km_out} 
