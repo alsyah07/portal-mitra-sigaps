@@ -217,10 +217,18 @@ export default function ApproveDriver() {
             showConfirmButton: false,
             customClass: { popup: 'rounded-[32px] px-8 py-6' }
           });
+        } else {
+          throw new Error(resultJson.message || 'Gagal memproses persetujuan');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to update status:', err);
-        Swal.fire('Kesalahan', 'Gagal memperbarui status', 'error');
+        Swal.fire({
+          title: 'Gagal!',
+          text: err.message || 'Terjadi kesalahan sistem saat memproses data.',
+          icon: 'error',
+          confirmButtonColor: '#2563eb',
+          customClass: { popup: 'rounded-[32px] px-8 py-6' }
+        });
       }
     }
   };

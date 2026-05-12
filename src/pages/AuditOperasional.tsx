@@ -33,6 +33,7 @@ interface AuditTrailData {
   date_original: string | null;
   audit_date: string;
   status_audit: number;
+  keterangan_data: string | null;
   created_at: string;
   updated_at: string | null;
   users: {
@@ -127,7 +128,8 @@ export default function AuditOperasional() {
   }, [user]);
 
   const filteredData = data.filter(item => 
-    item.action !== 'LOGIN' && (
+    item.action !== 'LOGIN' && 
+    item.employee_id !== 'SYSTEM' && (
       item.source_table.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.employee_id?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -400,8 +402,8 @@ export default function AuditOperasional() {
       {/* Stats Quick View */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total Logs', value: data.length, icon: History, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Updates', value: data.filter(d => d.action === 'UPDATE').length, icon: Activity, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { label: 'Total Logs', value: filteredData.length, icon: History, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Updates', value: filteredData.filter(d => d.action === 'UPDATE').length, icon: Activity, color: 'text-amber-600', bg: 'bg-amber-50' },
           { label: 'Sessions', value: data.filter(d => d.action === 'LOGIN').length, icon: User, color: 'text-sky-600', bg: 'bg-sky-50' },
           { label: 'Integrity', value: '100%', icon: Shield, color: 'text-emerald-600', bg: 'bg-emerald-50' },
         ].map((stat, i) => (
@@ -440,9 +442,8 @@ export default function AuditOperasional() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/50">
-                <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Activity</th>
-                <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Original State</th>
-                <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Modified State</th>
+                <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Activity & Identity</th>
+                <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Change Description</th>
                 <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Actor</th>
                 <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Timestamp</th>
                 <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest text-right">Details</th>
@@ -451,7 +452,7 @@ export default function AuditOperasional() {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-8 py-20 text-center">
+                  <td colSpan={5} className="px-8 py-20 text-center">
                     <div className="flex flex-col items-center gap-4">
                       <RefreshCw className="animate-spin text-blue-500" size={32} />
                       <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Compiling audit logs...</p>
@@ -460,46 +461,16 @@ export default function AuditOperasional() {
                 </tr>
               ) : filteredData.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-8 py-20 text-center">
+                  <td colSpan={5} className="px-8 py-20 text-center">
                     <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No matching activities found.</p>
                   </td>
                 </tr>
               ) : (
                 filteredData.map((item) => {
-                  const oldData = safeJsonParse(item.old_data);
-                  const newData = safeJsonParse(item.new_data);
-                  
-                  // For display purposes, we'll show either changed fields OR just the first 5 fields if it's a data-heavy record
-                  const getDisplayFields = () => {
-                    const dataToUse = newData || oldData;
-                    if (!dataToUse || typeof dataToUse !== 'object') return [];
-                    
-                    const keys = Object.keys(dataToUse);
-                    
-                    // If it's the timesheets_mitra table, show all fields to ensure transparency for rollback
-                    if (item.source_table === 'timesheets_mitra') {
-                      return keys.filter(key => 
-                        key !== 'id_timesheets_mitra' && 
-                        key !== 'employee_id' && 
-                        key !== 'nama_driver' && 
-                        key !== 'created_at' &&
-                        key !== 'code_customer'
-                      );
-                    }
-
-                    const changedKeys = newData && oldData && typeof newData === 'object' && typeof oldData === 'object' 
-                      ? keys.filter(key => JSON.stringify((oldData as any)[key]) !== JSON.stringify((newData as any)[key]))
-                      : keys;
-
-                    return changedKeys.length > 0 ? changedKeys : keys;
-                  };
-
-                  const displayFields = getDisplayFields();
-
                   return (
                     <tr key={item.id__audit_trail} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="px-8 py-6 align-top">
-                        <div className="flex flex-col gap-4 min-w-[160px]">
+                        <div className="flex flex-col gap-4 min-w-[200px]">
                           <div className={`px-4 py-1.5 rounded-2xl border-2 text-[10px] font-black uppercase tracking-[0.2em] w-fit shadow-sm ${getActionColor(item.action)}`}>
                             {item.action}
                           </div>
@@ -527,77 +498,30 @@ export default function AuditOperasional() {
                           </div>
                         </div>
                       </td>
-                      
-                      <td className="px-8 py-6 align-top min-w-[340px]">
-                        <div className="bg-rose-50/20 rounded-[2rem] border border-rose-100/50 p-5 shadow-sm hover:shadow-md transition-shadow">
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                            {item.action === 'LOGIN' || item.action === 'INSERT' ? (
-                              <div className="col-span-2 py-6 flex flex-col items-center justify-center gap-2 text-rose-300">
-                                <FileJson size={24} strokeWidth={1.5} className="opacity-50" />
-                                <span className="text-[9px] font-black uppercase tracking-widest">Initial State</span>
-                              </div>
-                            ) : displayFields.length > 0 ? (
-                              displayFields.map(key => {
-                                const val = oldData && typeof oldData === 'object' ? (oldData as any)[key] : null;
-                                const newVal = newData && typeof newData === 'object' ? (newData as any)[key] : null;
-                                const isChanged = JSON.stringify(val) !== JSON.stringify(newVal);
 
-                                return (
-                                  <div key={key} className={`group flex flex-col gap-1 border-b border-rose-100/20 pb-2 last:border-0 transition-all ${isChanged ? 'bg-rose-500/[0.03] rounded-lg p-1 -m-1 border-transparent' : ''}`}>
-                                    <div className="flex items-center gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
-                                      {key.includes('time') ? <Clock size={10} /> : key.includes('km') ? <Activity size={10} /> : <div className="w-1 h-1 rounded-full bg-rose-400" />}
-                                      <span className="text-[7px] font-black text-rose-900 uppercase tracking-widest truncate">{key.replace(/_/g, ' ')}</span>
-                                    </div>
-                                    <span className={`text-[10px] font-bold break-all leading-tight pl-2 ${isChanged ? 'text-rose-600' : 'text-rose-400/60'}`}>
-                                      {formatValue(key, val)}
-                                    </span>
-                                  </div>
-                                );
-                              })
-                            ) : (
-                              <span className="text-[10px] text-rose-300 italic col-span-2 text-center py-6">No records</span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-8 py-6 align-top min-w-[340px]">
-                        <div className="bg-emerald-50/20 rounded-[2rem] border border-emerald-100/50 p-5 shadow-sm hover:shadow-md transition-shadow h-full">
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                            {item.action === 'LOGIN' ? (
-                              <div className="col-span-2 py-6 flex flex-col items-center justify-center gap-3">
-                                <div className="h-10 w-10 bg-white rounded-full flex items-center justify-center shadow-md border border-emerald-100 text-emerald-500">
-                                  <Activity size={20} className="animate-pulse" />
-                                </div>
-                                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest bg-white px-3 py-1 rounded-full border border-emerald-50 shadow-sm">Established</span>
+                      <td className="px-8 py-6 align-top">
+                        <div className="min-w-[300px]">
+                          {item.keterangan_data ? (
+                            <div className="bg-amber-50/50 border border-amber-100/50 p-5 rounded-[2rem] shadow-sm hover:shadow-md transition-all">
+                              <div className="flex items-center gap-2 mb-3">
+                                <Activity size={14} className="text-amber-500" />
+                                <span className="text-[10px] font-black text-amber-800 uppercase tracking-widest">Modified Attributes</span>
                               </div>
-                            ) : item.action === 'DELETE' ? (
-                              <div className="col-span-2 py-6 flex flex-col items-center justify-center gap-2 text-rose-400">
-                                <Terminal size={24} className="opacity-50" />
-                                <span className="text-[9px] font-black uppercase tracking-widest">Removed</span>
-                              </div>
-                            ) : displayFields.length > 0 ? (
-                              displayFields.map(key => {
-                                const val = newData && typeof newData === 'object' ? (newData as any)[key] : null;
-                                const oldVal = oldData && typeof oldData === 'object' ? (oldData as any)[key] : null;
-                                const isChanged = JSON.stringify(val) !== JSON.stringify(oldVal);
-
-                                return (
-                                  <div key={key} className={`group flex flex-col gap-1 border-b border-emerald-100/20 pb-2 last:border-0 transition-all ${isChanged ? 'bg-emerald-500/[0.05] rounded-lg p-1 -m-1 border-transparent' : ''}`}>
-                                    <div className="flex items-center gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
-                                      {key.includes('time') ? <Clock size={10} /> : key.includes('km') ? <Activity size={10} /> : <div className="w-1 h-1 rounded-full bg-emerald-400" />}
-                                      <span className="text-[7px] font-black text-emerald-900 uppercase tracking-widest truncate">{key.replace(/_/g, ' ')}</span>
-                                    </div>
-                                    <span className={`text-[10px] font-black break-all leading-tight pl-2 ${isChanged ? 'text-emerald-700' : 'text-emerald-600/40'}`}>
-                                      {formatValue(key, val)}
-                                    </span>
-                                  </div>
-                                );
-                              })
-                            ) : (
-                              <span className="text-[10px] text-emerald-300 italic col-span-2 text-center py-6">Conserved</span>
-                            )}
-                          </div>
+                              <p className="text-sm font-bold text-gray-800 leading-relaxed italic">
+                                {item.keterangan_data}
+                              </p>
+                            </div>
+                          ) : item.action === 'LOGIN' ? (
+                            <div className="bg-sky-50/30 border border-sky-100/50 p-5 rounded-[2rem] flex flex-col items-center justify-center gap-2">
+                              <Shield size={24} className="text-sky-400 opacity-50" />
+                              <span className="text-[10px] font-black text-sky-600 uppercase tracking-widest">Session Established</span>
+                            </div>
+                          ) : (
+                            <div className="bg-gray-50/30 border border-gray-100/50 p-5 rounded-[2rem] flex flex-col items-center justify-center gap-2">
+                              <FileJson size={24} className="text-gray-300 opacity-50" />
+                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">System Snapshot Logged</span>
+                            </div>
+                          )}
                         </div>
                       </td>
 

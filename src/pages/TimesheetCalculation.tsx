@@ -187,6 +187,8 @@ export default function TimesheetCalculation() {
         return dStr === currentStr;
       });
 
+      const isApproved = timesheet?.approved_timesheets?.[0]?.status_approve === 1;
+
       let workHours = 0;
       let displayWork = "-";
       let displayTotal = "-";
@@ -202,7 +204,7 @@ export default function TimesheetCalculation() {
       }
 
       const upahPerJam = parseInt(data.agreement?.upahPerJam || "0");
-      const insentif = Math.round(workHours) * upahPerJam;
+      const insentif = isApproved ? (Math.round(workHours) * upahPerJam) : 0;
       const performanceRate = timesheet ? parseFloat(timesheet.performance_rate || "0") : 0;
 
       daysList.push({
@@ -214,10 +216,10 @@ export default function TimesheetCalculation() {
         totalWork: displayWork,
         effective: displayTotal,
         insentif: insentif,
-        premium: timesheet?.is_premium ? parseInt(data.agreement?.tunjanganMobilMewah || "0") : 0,
-        vip: timesheet?.is_vip ? parseInt(data.agreement?.tunjanganKonsumsiVIP || "0") : 0,
-        holiday: timesheet?.status_hari_libur ? parseInt(data.agreement?.insentifLiburNasional || "0") : 0,
-        religious: timesheet?.status_hari_raya ? parseInt(data.agreement?.tunjanganHariRaya || "0") : 0,
+        premium: (isApproved && timesheet?.is_premium) ? parseInt(data.agreement?.tunjanganMobilMewah || "0") : 0,
+        vip: (isApproved && timesheet?.is_vip) ? parseInt(data.agreement?.tunjanganKonsumsiVIP || "0") : 0,
+        holiday: (isApproved && (timesheet?.status_hari_libur || isWeekend)) ? parseInt(data.agreement?.insentifLiburNasional || "0") : 0,
+        religious: (isApproved && timesheet?.status_hari_raya) ? parseInt(data.agreement?.tunjanganHariRaya || "0") : 0,
         performanceRate: performanceRate,
         isWeekend
       });
@@ -383,7 +385,20 @@ export default function TimesheetCalculation() {
                   <td className="px-2 py-3 border-r border-gray-100 text-center">
                     {day.performanceRate > 0 ? <span className="bg-emerald-50 text-emerald-600 px-2 py-1 rounded-md text-[9px] border border-emerald-100">{day.performanceRate.toFixed(2)}</span> : '-'}
                   </td>
-                  <td className="px-2 py-3 italic text-gray-300 text-[8px] text-center">-</td>
+                  <td className="px-2 py-3 italic text-gray-500 text-[8px] text-center">
+                    {day.religious > 0 ? 'Hari Raya' : day.holiday ? 'Hari Libur' : (
+                      data.timesheets.find(ts => {
+                        if (!ts.date_timesheets) return false;
+                        const isUnix = /^\d+$/.test(ts.date_timesheets);
+                        const tsDate = isUnix ? new Date(Number(ts.date_timesheets) * 1000) : new Date(ts.date_timesheets);
+                        const dStr = tsDate.getFullYear() + '-' + String(tsDate.getMonth() + 1).padStart(2, '0') + '-' + String(tsDate.getDate()).padStart(2, '0');
+                        const [d, m, y] = day.date.split('-');
+                        const monthMap: {[key: string]: string} = { 'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12' };
+                        const currentStr = `20${y}-${monthMap[m]}-${d}`;
+                        return dStr === currentStr;
+                      })?.approved_timesheets?.[0]?.note || '-'
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
