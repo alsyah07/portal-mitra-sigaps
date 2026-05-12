@@ -127,14 +127,18 @@ export default function AuditOperasional() {
     fetchAuditData();
   }, [user]);
 
-  const filteredData = data.filter(item => 
-    item.action !== 'LOGIN' && 
-    item.employee_id !== 'SYSTEM' && (
+  const filteredData = data.filter(item => {
+    // Hide REGISTER actions as requested
+    if (item.action === 'REGISTER' || item.action === 'REGISTER_USER') return false;
+
+    const matchesSearch = 
       item.source_table.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.employee_id?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+      item.employee_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.nama_driver?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchesSearch;
+  });
 
   const getActionColor = (action: string) => {
     switch (action.toUpperCase()) {
@@ -478,14 +482,14 @@ export default function AuditOperasional() {
                             <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest mb-2 px-1">Affected Entity</span>
                             <div className="flex items-center gap-3 bg-white border border-gray-100 px-4 py-3 rounded-2xl shadow-sm hover:shadow-md hover:border-blue-200 transition-all group/driver cursor-default">
                               <div className="h-9 w-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shadow-inner group-hover/driver:scale-110 transition-transform">
-                                <User size={18} strokeWidth={2.5} />
+                                {item.action === 'LOGIN' ? <Shield size={18} strokeWidth={2.5} /> : <User size={18} strokeWidth={2.5} />}
                               </div>
                               <div className="flex flex-col min-w-0">
                                 <span className="text-xs font-black text-gray-900 truncate">
-                                  {item.nama_driver || 'SYSTEM'}
+                                  {item.nama_driver || (item.action === 'LOGIN' ? (item.users?.nama_customer || 'User Session') : 'SYSTEM')}
                                 </span>
                                 <span className="text-[10px] font-bold text-blue-500/70 tracking-tighter">
-                                  {item.employee_id || 'INTERNAL'}
+                                  {item.employee_id || (item.action === 'LOGIN' ? 'ACCESS' : 'INTERNAL')}
                                 </span>
                               </div>
                             </div>
@@ -559,7 +563,7 @@ export default function AuditOperasional() {
 
                       <td className="px-8 py-6 text-right align-top">
                         <div className="flex items-center justify-end gap-3">
-                          {item.action !== 'ROLLBACK' && user?.role?.some(r => r.role === 'superadmin' || r.role === 'audit') && (
+                          {item.action === 'UPDATE' && user?.role?.some(r => r.role === 'superadmin' || r.role === 'audit') && (
                             <button 
                               onClick={() => handleRollback(item.id__audit_trail)}
                               title="Restore Previous State"
@@ -733,7 +737,7 @@ export default function AuditOperasional() {
                   >
                     Close
                   </button>
-                  {selectedAudit.action !== 'ROLLBACK' && user?.role?.some(r => r.role === 'superadmin' || r.role === 'audit') && (
+                  {selectedAudit.action === 'UPDATE' && user?.role?.some(r => r.role === 'superadmin' || r.role === 'audit') && (
                     <button 
                       onClick={() => handleRollback(selectedAudit.id__audit_trail)}
                       disabled={loading}

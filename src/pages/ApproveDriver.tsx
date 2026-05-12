@@ -571,18 +571,30 @@ export default function ApproveDriver() {
                               onClick={() => {
                                 setEditFormData({...editFormData, time_entry: selectedTimesheet?.time_entry, time_exit: selectedTimesheet?.time_exit});
                               }}
-                              className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${!editFormData.time_entry?.includes('07:30:00') ? 'bg-white shadow-sm text-indigo-600 ring-1 ring-indigo-100' : 'text-gray-400 hover:text-gray-600'}`}
+                              className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${!editFormData.time_entry?.includes('07:30') ? 'bg-white shadow-sm text-indigo-600 ring-1 ring-indigo-100' : 'text-gray-400 hover:text-gray-600'}`}
                             >
                               Custom Entry
                             </button>
                             <button
                               type="button"
                               onClick={() => {
-                                let newEntry = editFormData.time_entry;
-                                if (newEntry) newEntry = newEntry.split(' ')[0] + ' 07:30:00';
-                                setEditFormData({...editFormData, time_entry: newEntry});
+                                let currentEntry = editFormData.time_entry || "";
+                                // If it has a space, check if the first part is a date
+                                if (currentEntry.includes(' ')) {
+                                  const parts = currentEntry.split(' ');
+                                  if (parts[0].includes('-')) {
+                                    // It's a date prefix, keep it
+                                    setEditFormData({...editFormData, time_entry: `${parts[0]} 07:30:00`});
+                                  } else {
+                                    // It was likely corrupted (e.g., "06:32 07:30:00"), reset to just time
+                                    setEditFormData({...editFormData, time_entry: '07:30'});
+                                  }
+                                } else {
+                                  // Just time, override it
+                                  setEditFormData({...editFormData, time_entry: '07:30'});
+                                }
                               }}
-                              className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${editFormData.time_entry?.includes('07:30:00') ? 'bg-indigo-600 shadow-md text-white' : 'text-gray-400 hover:text-gray-600'}`}
+                              className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${editFormData.time_entry?.includes('07:30') ? 'bg-indigo-600 shadow-md text-white' : 'text-gray-400 hover:text-gray-600'}`}
                             >
                               Fixed Entry
                             </button>
