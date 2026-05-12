@@ -48,7 +48,10 @@ export default function AuditOperasional() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAudit, setSelectedAudit] = useState<AuditTrailData | null>(null);
-  const [activeTab, setActiveTab] = useState<'operational' | 'identity' | 'security'>('operational');
+  const [selectedAction, setSelectedAction] = useState<string>('ALL');
+  const [selectedTable, setSelectedTable] = useState<string>('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const fetchAuditData = async () => {
     if (!user) return;
@@ -131,6 +134,12 @@ export default function AuditOperasional() {
     // Hide REGISTER actions as requested
     if (item.action === 'REGISTER' || item.action === 'REGISTER_USER') return false;
 
+    // Filter by Action
+    if (selectedAction !== 'ALL' && item.action !== selectedAction) return false;
+
+    // Filter by Table
+    if (selectedTable !== 'ALL' && item.source_table !== selectedTable) return false;
+
     const matchesSearch = 
       item.source_table.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -139,6 +148,11 @@ export default function AuditOperasional() {
     
     return matchesSearch;
   });
+
+  // Pagination Logic
+  const totalItems = filteredData.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const getActionColor = (action: string) => {
     switch (action.toUpperCase()) {
@@ -426,15 +440,66 @@ export default function AuditOperasional() {
       {/* Table Section */}
       <div className="bg-white border border-gray-200 rounded-[2.5rem] shadow-[0_4px_30px_-4px_rgba(0,0,0,0.05)] overflow-hidden">
         <div className="p-8 border-b border-gray-50 flex flex-col md:flex-row gap-6 justify-between items-center">
-          <div className="relative flex-1 w-full max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Search by table, action, or driver ID..."
-              className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all placeholder:text-gray-300"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex flex-col md:flex-row flex-1 w-full gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input 
+                type="text" 
+                placeholder="Search by driver ID or name..."
+                className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all placeholder:text-gray-300 shadow-inner"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
+            
+            <div className="flex gap-2">
+              <select 
+                value={selectedAction}
+                onChange={(e) => {
+                  setSelectedAction(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="bg-gray-50 border-none rounded-2xl text-[10px] font-black uppercase tracking-widest px-6 py-4 focus:ring-2 focus:ring-[#1e3a5f]/10 outline-none shadow-inner text-gray-600 appearance-none cursor-pointer hover:bg-gray-100 transition-colors"
+              >
+                <option value="ALL">All Actions</option>
+                <option value="UPDATE">Update</option>
+                <option value="LOGIN">Login</option>
+                <option value="INSERT">Insert</option>
+                <option value="DELETE">Delete</option>
+                <option value="ROLLBACK">Rollback</option>
+              </select>
+
+              <select 
+                value={selectedTable}
+                onChange={(e) => {
+                  setSelectedTable(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="bg-gray-50 border-none rounded-2xl text-[10px] font-black uppercase tracking-widest px-6 py-4 focus:ring-2 focus:ring-[#1e3a5f]/10 outline-none shadow-inner text-gray-600 appearance-none cursor-pointer hover:bg-gray-100 transition-colors"
+              >
+                <option value="ALL">All Tables</option>
+                {Array.from(new Set(data.map(item => item.source_table))).map(table => (
+                  <option key={table} value={table}>{table.replace(/_/g, ' ')}</option>
+                ))}
+              </select>
+
+              <select 
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-gray-50 border-none rounded-2xl text-[10px] font-black uppercase tracking-widest px-6 py-4 focus:ring-2 focus:ring-[#1e3a5f]/10 outline-none shadow-inner text-gray-600 appearance-none cursor-pointer hover:bg-gray-100 transition-colors"
+              >
+                <option value={10}>10 per page</option>
+                <option value={20}>20 per page</option>
+                <option value={50}>50 per page</option>
+                <option value={100}>100 per page</option>
+              </select>
+            </div>
           </div>
           <div className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest">
             <Globe size={14} />
@@ -470,7 +535,7 @@ export default function AuditOperasional() {
                   </td>
                 </tr>
               ) : (
-                filteredData.map((item) => {
+                paginatedData.map((item) => {
                   return (
                     <tr key={item.id__audit_trail} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="px-8 py-6 align-top">
@@ -588,6 +653,65 @@ export default function AuditOperasional() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Footer */}
+        {totalPages > 1 && (
+          <div className="p-8 border-t border-gray-50 bg-gray-50/30 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                Showing {Math.min((currentPage - 1) * itemsPerPage + 1, totalItems)} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setCurrentPage(prev => Math.max(prev - 1, 1));
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                disabled={currentPage === 1}
+                className="h-10 px-4 rounded-xl border border-gray-200 bg-white text-[10px] font-black uppercase tracking-widest text-gray-500 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-40 transition-all active:scale-95 shadow-sm"
+              >
+                Previous
+              </button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                  .map((p, i, arr) => (
+                    <React.Fragment key={p}>
+                      {i > 0 && arr[i - 1] !== p - 1 && <span className="px-2 text-gray-300">...</span>}
+                      <button
+                        onClick={() => {
+                          setCurrentPage(p);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className={`h-10 w-10 rounded-xl text-[10px] font-black transition-all active:scale-95 shadow-sm ${
+                          currentPage === p 
+                            ? 'bg-[#1e3a5f] text-white shadow-lg shadow-blue-900/20' 
+                            : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    </React.Fragment>
+                  ))
+                }
+              </div>
+
+              <button
+                onClick={() => {
+                  setCurrentPage(prev => Math.min(prev + 1, totalPages));
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                disabled={currentPage === totalPages}
+                className="h-10 px-4 rounded-xl border border-gray-200 bg-white text-[10px] font-black uppercase tracking-widest text-gray-500 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-40 transition-all active:scale-95 shadow-sm"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal for detailed data diff view */}
