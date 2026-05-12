@@ -8,6 +8,7 @@ export interface User {
   id_users: number;
   code_customer: string;
   nama_customer: string;
+  name_users?: string;
   email: string;
   status: number;
   role?: Role[];

@@ -72,7 +72,7 @@ export default function DashboardLayout() {
               </div>
               <div className="hidden md:flex flex-col">
                 <span className="text-[11px] font-black text-white leading-tight truncate max-w-[120px]">{user.nama_customer}</span>
-                <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">CUST-{user.code_customer}</span>
+                <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">{user.name_users || `CUST-${user.code_customer}`}</span>
               </div>
             </div>
             <button
@@ -188,7 +188,7 @@ export default function DashboardLayout() {
                     className="min-w-0"
                   >
                     <p className="text-[12px] font-black text-gray-900 truncate tracking-tight uppercase">{user.nama_customer}</p>
-                    <p className="text-[9px] text-gray-400 uppercase font-black tracking-widest">CUST-{user.code_customer}</p>
+                    <p className="text-[9px] text-gray-400 uppercase font-black tracking-widest">{user.name_users || `CUST-${user.code_customer}`}</p>
                   </motion.div>
                 )}
               </AnimatePresence>

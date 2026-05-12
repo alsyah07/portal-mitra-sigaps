@@ -61,6 +61,7 @@ export default function UserManagement() {
       setCurrentUser({
         nama_customer: '',
         code_customer: '',
+        name_users: '',
         email: '',
         password: '',
         status: 1,
@@ -197,7 +198,15 @@ export default function UserManagement() {
                         </div>
                         <div>
                           <p className="text-sm font-bold text-gray-900">{user.nama_customer}</p>
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{user.code_customer}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{user.code_customer}</p>
+                            {user.name_users && (
+                              <>
+                                <span className="h-1 w-1 rounded-full bg-gray-300" />
+                                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">{user.name_users}</p>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -303,6 +312,17 @@ export default function UserManagement() {
                       placeholder="e.g. SGP01"
                     />
                   </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">User Display Name</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-4 py-3 bg-gray-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all font-bold"
+                    value={currentUser.name_users || ''}
+                    onChange={(e) => setCurrentUser({...currentUser, name_users: e.target.value})}
+                    placeholder="e.g. Admin / John Doe"
+                  />
                 </div>
 
                 <div className="space-y-2">
