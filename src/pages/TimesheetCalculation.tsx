@@ -12,7 +12,7 @@ export default function TimesheetCalculation() {
   const { employeeId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   
   const period = searchParams.get('period') || new Date().toISOString().slice(0, 7); // YYYY-MM
   const [loading, setLoading] = useState(true);
@@ -111,10 +111,19 @@ export default function TimesheetCalculation() {
     }
   };
 
+  const normalizeDate = (dateVal: string) => {
+    if (!dateVal) return null;
+    const d = /^\d+$/.test(dateVal) ? new Date(Number(dateVal) * 1000) : new Date(dateVal);
+    if (isNaN(d.getTime())) return null;
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        console.log(`Fetching data for Employee: ${employeeId}, Customer: ${user?.code_customer}`);
+        
         const driverRes = await fetch(`${import.meta.env.VITE_URL_API_DRIVER}drivers/code_company/${user?.code_customer}`);
         const driverData = await driverRes.json();
         const rawDriver = driverData.data.find((d: any) => d.employee_id === employeeId);
@@ -125,8 +134,14 @@ export default function TimesheetCalculation() {
           });
         }
 
-        const res = await fetch(`${import.meta.env.VITE_URL_API}timesheets-mitra-firebase/${employeeId}/${user?.code_customer}`);
+        const res = await fetch(`${import.meta.env.VITE_URL_API}timesheets-mitra-firebase/${employeeId}/${user?.code_customer}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         const result = await res.json();
+        console.log('Calculation Data Received:', result);
+        
         if (result.status === 'success') {
           setData(result.data);
         }
@@ -136,8 +151,8 @@ export default function TimesheetCalculation() {
         setLoading(false);
       }
     };
-    if (user && employeeId) fetchData();
-  }, [employeeId, user]);
+    if (user && employeeId && token) fetchData();
+  }, [employeeId, user, token]);
 
   const generateDays = () => {
     if (!period) return [];
@@ -178,16 +193,14 @@ export default function TimesheetCalculation() {
             ? !data.agreement.workDays.includes(dayName) 
             : (dayName === 'Saturday' || dayName === 'Sunday'));
       
-      const timesheet = data.timesheets.find(ts => {
+      const currentStr = yearNum + '-' + String(monthNum + 1).padStart(2, '0') + '-' + String(dayNum).padStart(2, '0');
+      const rawTimesheet = data.timesheets.find(ts => {
         if (!ts.date_timesheets) return false;
-        const isUnix = /^\d+$/.test(ts.date_timesheets);
-        const tsDate = isUnix ? new Date(Number(ts.date_timesheets) * 1000) : new Date(ts.date_timesheets);
-        const dStr = tsDate.getFullYear() + '-' + String(tsDate.getMonth() + 1).padStart(2, '0') + '-' + String(tsDate.getDate()).padStart(2, '0');
-        const currentStr = yearNum + '-' + String(monthNum + 1).padStart(2, '0') + '-' + String(dayNum).padStart(2, '0');
-        return dStr === currentStr;
+        return normalizeDate(ts.date_timesheets) === currentStr;
       });
 
-      const isApproved = timesheet?.approved_timesheets?.[0]?.status_approve === 1;
+      const isApproved = rawTimesheet?.approved_timesheets?.[0]?.status_approve === 1;
+      const timesheet = isApproved ? rawTimesheet : null;
 
       let workHours = 0;
       let displayWork = "-";
@@ -221,7 +234,8 @@ export default function TimesheetCalculation() {
         holiday: (isApproved && (timesheet?.status_hari_libur || isWeekend)) ? parseInt(data.agreement?.insentifLiburNasional || "0") : 0,
         religious: (isApproved && timesheet?.status_hari_raya) ? parseInt(data.agreement?.tunjanganHariRaya || "0") : 0,
         performanceRate: performanceRate,
-        isWeekend
+        isWeekend,
+        penugasan: timesheet?.penugasan || ""
       });
 
       current.setDate(current.getDate() + 1);
@@ -386,18 +400,7 @@ export default function TimesheetCalculation() {
                     {day.performanceRate > 0 ? <span className="bg-emerald-50 text-emerald-600 px-2 py-1 rounded-md text-[9px] border border-emerald-100">{day.performanceRate.toFixed(2)}</span> : '-'}
                   </td>
                   <td className="px-2 py-3 italic text-gray-500 text-[8px] text-center">
-                    {day.religious > 0 ? 'Hari Raya' : day.holiday ? 'Hari Libur' : (
-                      data.timesheets.find(ts => {
-                        if (!ts.date_timesheets) return false;
-                        const isUnix = /^\d+$/.test(ts.date_timesheets);
-                        const tsDate = isUnix ? new Date(Number(ts.date_timesheets) * 1000) : new Date(ts.date_timesheets);
-                        const dStr = tsDate.getFullYear() + '-' + String(tsDate.getMonth() + 1).padStart(2, '0') + '-' + String(tsDate.getDate()).padStart(2, '0');
-                        const [d, m, y] = day.date.split('-');
-                        const monthMap: {[key: string]: string} = { 'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12' };
-                        const currentStr = `20${y}-${monthMap[m]}-${d}`;
-                        return dStr === currentStr;
-                      })?.approved_timesheets?.[0]?.note || '-'
-                    )}
+                    {day.penugasan}
                   </td>
                 </tr>
               ))}
@@ -523,7 +526,9 @@ export default function TimesheetCalculation() {
                   <td className="px-1 py-2 border border-black text-center font-mono" style={day.isWeekend ? { backgroundColor: '#fee2e2', color: '#be123c' } : {}}>{day.holiday > 0 ? day.holiday.toLocaleString() : ''}</td>
                   <td className="px-1 py-2 border border-black text-center font-mono" style={day.isWeekend ? { backgroundColor: '#fee2e2', color: '#be123c' } : {}}>{day.religious > 0 ? day.religious.toLocaleString() : ''}</td>
                   <td className="px-1 py-2 border border-black text-center font-bold text-emerald-600" style={day.isWeekend ? { backgroundColor: '#fee2e2', color: '#be123c' } : {}}>{day.performanceRate > 0 ? day.performanceRate.toFixed(1) : ''}</td>
-                  <td className="px-1 py-2 border border-black italic text-center" style={day.isWeekend ? { backgroundColor: '#fee2e2', color: '#be123c' } : {}}>-</td>
+                  <td className="px-1 py-2 border border-black italic text-center" style={day.isWeekend ? { backgroundColor: '#fee2e2', color: '#be123c' } : {}}>
+                    {day.penugasan}
+                  </td>
                 </tr>
               ))}
             </tbody>
