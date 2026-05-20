@@ -22,7 +22,8 @@ import {
   Banknote,
   Star,
   FileText,
-  X
+  X,
+  FileSpreadsheet
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -45,6 +46,7 @@ export default function ApproveDriver() {
   const [selectedTimesheet, setSelectedTimesheet] = useState<Timesheet | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editFormData, setEditFormData] = useState<Partial<Timesheet>>({});
+  const [isExporting, setIsExporting] = useState(false);
   
   // Expenses State
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -280,6 +282,246 @@ export default function ApproveDriver() {
     setSelectedTimesheet(ts);
     setEditFormData(ts);
     setIsEditing(true);
+  };
+
+  const handleExportExcel = async () => {
+    if (filteredData.length === 0) {
+      Swal.fire({
+        title: 'Tidak Ada Data',
+        text: 'Tidak ada data timesheet yang cocok dengan filter saat ini untuk diekspor.',
+        icon: 'warning',
+        confirmButtonColor: '#1a1f2e',
+        customClass: { popup: 'rounded-[32px]' }
+      });
+      return;
+    }
+
+    setIsExporting(true);
+    Swal.fire({
+      title: 'Mempersiapkan Laporan...',
+      text: 'Sedang mengekspor data timesheet & pengeluaran ke Excel. Mohon tunggu...',
+      icon: 'info',
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+      customClass: { popup: 'rounded-[32px] px-8 py-6' }
+    });
+
+    try {
+      // 1. Load SheetJS dynamically from CDN
+      const XLSX = await new Promise<any>((resolve, reject) => {
+        if ((window as any).XLSX) {
+          resolve((window as any).XLSX);
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+        script.onload = () => resolve((window as any).XLSX);
+        script.onerror = (err) => reject(new Error('Gagal memuat pustaka XLSX dari CDN.'));
+        document.body.appendChild(script);
+      });
+
+      // 2. Fetch daily expenses in parallel for all filtered records
+      const expenseFetches = filteredData.map(async (ts) => {
+        try {
+          const response = await fetch(`${import.meta.env.VITE_URL_API_DRIVER}daily-expenses-date/${ts.employee_id}/${ts.date_timesheets}`);
+          const result = await response.json();
+          if (result.success && Array.isArray(result.data)) {
+            return {
+              id_timesheets_mitra: ts.id_timesheets_mitra,
+              employee_id: ts.employee_id,
+              date_timesheets: ts.date_timesheets,
+              expenses: result.data
+            };
+          }
+        } catch (err) {
+          console.error(`Failed to fetch expenses for ${ts.employee_id} on ${ts.date_timesheets}:`, err);
+        }
+        return {
+          id_timesheets_mitra: ts.id_timesheets_mitra,
+          employee_id: ts.employee_id,
+          date_timesheets: ts.date_timesheets,
+          expenses: []
+        };
+      });
+
+      const timesheetExpenses = await Promise.all(expenseFetches);
+
+      // 3. Prepare Sheet 1 (Timesheet Approval Report) Rows
+      const excelRows = filteredData.map((ts, idx) => {
+        const driverName = drivers.find(d => d.employee_id === ts.employee_id)?.full_name || 'Verified Transport Partner';
+        const kmIn = Number(ts.km_entry) || 0;
+        const kmOut = Number(ts.km_exit) || 0;
+        const distance = kmOut > kmIn ? kmOut - kmIn : 0;
+
+        const approveStatusRaw = ts.approved_timesheets[0]?.status_approve ?? 0;
+        let approveStatus = 'Menunggu Persetujuan';
+        if (approveStatusRaw === 1) approveStatus = 'Disetujui';
+        else if (approveStatusRaw === -1) approveStatus = 'Ditolak';
+        else if (approveStatusRaw === -2) approveStatus = 'Revisi';
+
+        const approveNote = ts.approved_timesheets[0]?.note || '';
+
+        const hasRating = ts.user_ratings && ts.user_ratings.length > 0;
+        const avgScore = hasRating
+          ? ts.user_ratings!.length > 1
+            ? (ts.user_ratings!.reduce((acc, curr) => acc + parseFloat(curr.average_score), 0) / ts.user_ratings!.length).toFixed(2)
+            : ts.user_ratings![0].average_score
+          : 'N/A';
+        const ratingCount = hasRating ? ts.user_ratings!.length : 0;
+
+        // Calculate Expense Summary
+        const matchedExpenseItem = timesheetExpenses.find(te => te.id_timesheets_mitra === ts.id_timesheets_mitra);
+        const dailyExpensesList = matchedExpenseItem?.expenses || [];
+        const totalExpensesValue = dailyExpensesList.reduce((sum: number, exp: any) => sum + (Number(exp.expenses_value) || 0), 0);
+        const expensesSummaryStr = dailyExpensesList.map((exp: any) => `${exp.type_pengeluaran || 'Lain-lain'}: Rp ${(exp.expenses_value || 0).toLocaleString('id-ID')} (${exp.expenses_notes || ''})`).join(' | ');
+
+        return {
+          'No': idx + 1,
+          'ID Timesheet': ts.id_timesheets_mitra,
+          'Tanggal': formatDate(ts.date_timesheets),
+          'ID Driver': ts.employee_id,
+          'Nama Driver': driverName,
+          'Jam Masuk': getDisplayTimeEntry(ts),
+          'Odometer Masuk (KM)': kmIn,
+          'Jam Keluar': getDisplayTimeExit(ts),
+          'Odometer Keluar (KM)': kmOut,
+          'Jarak Tempuh (KM)': distance,
+          'Premium': ts.is_premium === 1 ? `Ya (${ts.premium_name || 'Standar'})` : 'Tidak',
+          'VIP Dedicated': ts.is_vip === 1 ? `Ya (${ts.vip_name || 'Standar'})` : 'Tidak',
+          'Hari Raya': ts.status_hari_raya === 1 ? 'Ya' : 'Tidak',
+          'Hari Libur': ts.status_hari_libur === 1 ? 'Ya' : 'Tidak',
+          'Penugasan': ts.penugasan || '',
+          'Rata-rata Rating': avgScore,
+          'Total Feedback': ratingCount,
+          'Total Pengeluaran (Rp)': totalExpensesValue,
+          'Daftar Pengeluaran': expensesSummaryStr,
+          'Status Persetujuan': approveStatus,
+          'Catatan Admin/Revisi': approveNote,
+        };
+      });
+
+      // 4. Prepare Sheet 2 (Laporan Pengeluaran Detail) Rows
+      const detailedExpensesRows: any[] = [];
+      let expenseIndex = 1;
+
+      timesheetExpenses.forEach((item) => {
+        const driverName = drivers.find(d => d.employee_id === item.employee_id)?.full_name || 'Verified Transport Partner';
+
+        item.expenses.forEach((exp: any) => {
+          detailedExpensesRows.push({
+            'No': expenseIndex++,
+            'ID Timesheet': item.id_timesheets_mitra,
+            'Tanggal': formatDate(item.date_timesheets),
+            'ID Driver': item.employee_id,
+            'Nama Driver': driverName,
+            'Tipe Pengeluaran': exp.type_pengeluaran || 'Lain-lain',
+            'Nilai Pengeluaran (Rp)': exp.expenses_value || 0,
+            'Catatan/Keterangan': exp.expenses_notes || '',
+            'Lokasi Pengeluaran': exp.lokasi_expenses || '',
+          });
+        });
+      });
+
+      // 5. Create Workbook
+      const workbook = XLSX.utils.book_new();
+
+      // 5a. Write Sheet 1
+      const worksheet = XLSX.utils.json_to_sheet(excelRows);
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Timesheet Approval Report');
+
+      // Set Column Widths for Sheet 1
+      const colWidths = [
+        { wch: 6 },   // No
+        { wch: 15 },  // ID Timesheet
+        { wch: 15 },  // Tanggal
+        { wch: 15 },  // ID Driver
+        { wch: 25 },  // Nama Driver
+        { wch: 12 },  // Jam Masuk
+        { wch: 20 },  // Odometer Masuk
+        { wch: 12 },  // Jam Keluar
+        { wch: 20 },  // Odometer Keluar
+        { wch: 18 },  // Jarak Tempuh
+        { wch: 15 },  // Premium
+        { wch: 15 },  // VIP
+        { wch: 12 },  // Hari Raya
+        { wch: 12 },  // Hari Libur
+        { wch: 30 },  // Penugasan
+        { wch: 15 },  // Rating
+        { wch: 15 },  // Feedbacks
+        { wch: 22 },  // Total Pengeluaran (Rp)
+        { wch: 45 },  // Daftar Pengeluaran
+        { wch: 20 },  // Status
+        { wch: 35 },  // Catatan
+      ];
+      worksheet['!cols'] = colWidths;
+
+      // 5b. Write Sheet 2
+      const detailedExpensesWorksheet = XLSX.utils.json_to_sheet(
+        detailedExpensesRows.length > 0 ? detailedExpensesRows : [
+          {
+            'No': '',
+            'ID Timesheet': '',
+            'Tanggal': '',
+            'ID Driver': '',
+            'Nama Driver': '',
+            'Tipe Pengeluaran': 'Tidak ada data pengeluaran',
+            'Nilai Pengeluaran (Rp)': 0,
+            'Catatan/Keterangan': '',
+            'Lokasi Pengeluaran': '',
+          }
+        ]
+      );
+      XLSX.utils.book_append_sheet(workbook, detailedExpensesWorksheet, 'Laporan Pengeluaran Detail');
+
+      // Set Column Widths for Sheet 2
+      const detailedColWidths = [
+        { wch: 6 },   // No
+        { wch: 15 },  // ID Timesheet
+        { wch: 15 },  // Tanggal
+        { wch: 15 },  // ID Driver
+        { wch: 25 },  // Nama Driver
+        { wch: 20 },  // Tipe Pengeluaran
+        { wch: 22 },  // Nilai Pengeluaran (Rp)
+        { wch: 35 },  // Catatan/Keterangan
+        { wch: 40 },  // Lokasi Pengeluaran
+      ];
+      detailedExpensesWorksheet['!cols'] = detailedColWidths;
+
+      // 6. Write Workbook File
+      const now = new Date();
+      const dateString = now.getFullYear() +
+        String(now.getMonth() + 1).padStart(2, '0') +
+        String(now.getDate()).padStart(2, '0') + '_' +
+        String(now.getHours()).padStart(2, '0') +
+        String(now.getMinutes()).padStart(2, '0');
+      
+      const fileName = `SIGAPS_Timesheet_Report_${dateString}.xlsx`;
+
+      XLSX.writeFile(workbook, fileName);
+
+      Swal.fire({
+        title: 'Ekspor Berhasil!',
+        text: `Data laporan berhasil diekspor sebagai "${fileName}"`,
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false,
+        customClass: { popup: 'rounded-[32px] px-8 py-6' }
+      });
+    } catch (err: any) {
+      console.error('Failed to export Excel:', err);
+      Swal.fire({
+        title: 'Ekspor Gagal!',
+        text: err.message || 'Terjadi kesalahan saat memproses data Excel.',
+        icon: 'error',
+        confirmButtonColor: '#2563eb',
+        customClass: { popup: 'rounded-[32px] px-8 py-6' }
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const getStatusBadge = (status: number, employeeId: string, date: string) => {
@@ -1125,6 +1367,103 @@ export default function ApproveDriver() {
         </div>
       </div>
 
+      {/* Overview Statistics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Total Logs */}
+        <motion.div 
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.4 }}
+          className="p-6 bg-white border border-gray-200 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300 group flex items-center justify-between"
+        >
+          <div className="space-y-1">
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Transaksi</span>
+            <h4 className="text-3xl font-black text-gray-900 tracking-tight leading-none">
+              {filteredData.length}
+            </h4>
+            <p className="text-[10px] font-bold text-gray-400 mt-1">Timesheet Mitra Terfilter</p>
+          </div>
+          <div className="h-12 w-12 rounded-2xl bg-blue-50 border border-blue-100/50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform duration-300">
+            <FileText size={20} />
+          </div>
+        </motion.div>
+
+        {/* Pending Approval */}
+        <motion.div 
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.4 }}
+          className="p-6 bg-white border border-gray-200 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300 group flex items-center justify-between"
+        >
+          <div className="space-y-1">
+            <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-1.5">
+              <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+              Menunggu Approval
+            </span>
+            <h4 className="text-3xl font-black text-gray-900 tracking-tight leading-none">
+              {filteredData.filter(ts => (ts.approved_timesheets[0]?.status_approve ?? 0) === 0).length}
+            </h4>
+            <p className="text-[10px] font-bold text-gray-400 mt-1">Butuh Verifikasi Segera</p>
+          </div>
+          <div className="h-12 w-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform duration-300">
+            <Clock size={20} />
+          </div>
+        </motion.div>
+
+        {/* Total Distance */}
+        <motion.div 
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="p-6 bg-white border border-gray-200 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300 group flex items-center justify-between"
+        >
+          <div className="space-y-1">
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Jarak Tempuh</span>
+            <h4 className="text-2xl font-black text-gray-900 tracking-tight leading-none">
+              {filteredData.reduce((sum, ts) => {
+                const entry = Number(ts.km_entry) || 0;
+                const exit = Number(ts.km_exit) || 0;
+                return sum + (exit > entry ? exit - entry : 0);
+              }, 0).toLocaleString('id-ID')} <span className="text-xs font-bold text-gray-400">KM</span>
+            </h4>
+            <p className="text-[10px] font-bold text-gray-400 mt-1">Akumulasi Jarak Driver</p>
+          </div>
+          <div className="h-12 w-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform duration-300">
+            <Truck size={20} />
+          </div>
+        </motion.div>
+
+        {/* Average Rating */}
+        <motion.div 
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.4 }}
+          className="p-6 bg-white border border-gray-200 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300 group flex items-center justify-between"
+        >
+          <div className="space-y-1">
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Rata-rata Rating</span>
+            <h4 className="text-3xl font-black text-gray-900 tracking-tight leading-none flex items-center gap-1.5">
+              {(() => {
+                const rated = filteredData.filter(ts => ts.user_ratings && ts.user_ratings.length > 0);
+                if (rated.length === 0) return 'N/A';
+                const avg = rated.reduce((sum, ts) => {
+                  const itemAvg = ts.user_ratings!.reduce((acc, curr) => acc + parseFloat(curr.average_score), 0) / ts.user_ratings!.length;
+                  return sum + itemAvg;
+                }, 0) / rated.length;
+                return avg.toFixed(2);
+              })()}
+              {filteredData.some(ts => ts.user_ratings && ts.user_ratings.length > 0) && (
+                <Star size={18} className="fill-amber-500 text-amber-500 inline-block mb-1" />
+              )}
+            </h4>
+            <p className="text-[10px] font-bold text-gray-400 mt-1">Kualitas Layanan Driver</p>
+          </div>
+          <div className="h-12 w-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform duration-300">
+            <Star size={20} className="fill-amber-500" />
+          </div>
+        </motion.div>
+      </div>
+
       {loading ? (
         <div className="h-80 flex items-center justify-center bg-white border border-gray-200 rounded-3xl shadow-sm">
           <div className="flex flex-col items-center gap-4">
@@ -1148,8 +1487,8 @@ export default function ApproveDriver() {
       ) : (
         <div className="bg-white border border-gray-200 rounded-[32px] overflow-hidden shadow-sm ring-1 ring-black/[0.02]">
           {/* Table Controls */}
-          <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-[#fcfcfa]/50">
-            <div className="flex items-center gap-4">
+          <div className="p-6 border-b border-gray-100 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 bg-[#fcfcfa]/50">
+            <div className="flex items-center flex-wrap gap-4">
               <div className="flex items-center gap-2 pr-4 border-r border-gray-100">
                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Per Page</span>
                 <select 
@@ -1162,7 +1501,18 @@ export default function ApproveDriver() {
                   <option value={50}>50</option>
                 </select>
               </div>
-              <span className="text-sm font-bold text-gray-400">Total: {filteredData.length} records</span>
+              <span className="text-sm font-bold text-gray-400 pr-4 border-r border-gray-100">Total: {filteredData.length} records</span>
+              
+              {/* Excel Export Button */}
+              <button
+                onClick={handleExportExcel}
+                disabled={isExporting}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-md shadow-emerald-100 hover:shadow-lg active:scale-95 cursor-pointer"
+                title="Unduh laporan dalam format Excel"
+              >
+                <FileSpreadsheet size={14} />
+                {isExporting ? 'Mengekspor...' : 'Export Excel'}
+              </button>
             </div>
 
             <div className="flex items-center gap-4">
@@ -1240,7 +1590,7 @@ export default function ApproveDriver() {
                   <th className="px-8 py-5">No</th>
                   <th className="px-8 py-5">Date</th>
                   <th className="px-8 py-5">Driver Info</th>
-                  <th className="px-8 py-5">Schedule In/Out</th>
+                  <th className="px-8 py-5">Schedule & Jarak Tempuh</th>
                   <th className="px-8 py-5">Premium</th>   
                   <th className="px-8 py-5">VIP</th>   
                   <th className="px-8 py-5">Hari Raya</th>
@@ -1277,7 +1627,7 @@ export default function ApproveDriver() {
                     </td>
                     
                     <td className="px-8 py-6 whitespace-nowrap">
-                      <div className="flex items-center gap-8">
+                      <div className="flex items-center gap-6">
                         <div className="space-y-1">
                            <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Check Entry</span>
                            <div className="flex items-center gap-2">
@@ -1293,55 +1643,71 @@ export default function ApproveDriver() {
                              <span className="text-[10px] font-black text-indigo-600/60 bg-indigo-50 px-1.5 py-0.5 rounded-lg border border-indigo-100/50">{ts.km_exit ? Number(ts.km_exit).toLocaleString('en-US') : '0'} KM</span>
                            </div>
                         </div>
+                        <div className="h-10 w-px bg-gray-100" />
+                        <div className="space-y-1">
+                          <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Jarak Tempuh</span>
+                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-lg text-[11px] font-bold border border-emerald-100">
+                            {(() => {
+                              const entry = Number(ts.km_entry) || 0;
+                              const exit = Number(ts.km_exit) || 0;
+                              const diff = exit > entry ? exit - entry : 0;
+                              return `${diff.toLocaleString('id-ID')} KM`;
+                            })()}
+                          </span>
+                        </div>
                       </div>
                     </td>
                     <td className="px-8 py-6 whitespace-nowrap">
                       {ts.is_premium === 1 ? (
                         <div className="flex flex-col items-start gap-1">
-                          <span className="inline-flex items-center gap-1 bg-blue-50/80 text-blue-600 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-blue-200/50">
-                            <CheckCircle size={10} /> Ya
+                          <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 px-2.5 py-0.5 rounded-lg text-[10px] font-bold border border-blue-200/50">
+                            <CheckCircle size={10} className="fill-blue-50" /> Ya
                           </span>
-                          {ts.premium_name && <span className="text-[9px] font-bold text-gray-400 truncate max-w-[100px]">{ts.premium_name}</span>}
+                          {ts.premium_name && ts.premium_name !== 'null' && (
+                            <span className="text-[9px] font-bold text-gray-400 truncate max-w-[100px]" title={ts.premium_name}>{ts.premium_name}</span>
+                          )}
                         </div>
                       ) : (
-                        <span className="inline-flex items-center gap-1 bg-rose-50/50 text-rose-500 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-100">
-                          <XCircle size={10} /> Tidak
+                        <span className="inline-flex items-center gap-1 bg-gray-50 text-gray-400 px-2 py-0.5 rounded-lg text-[10px] font-semibold border border-gray-200/50">
+                          <XCircle size={10} className="text-gray-300" /> Tidak
                         </span>
                       )}
                     </td>
                     <td className="px-8 py-6 whitespace-nowrap">
                       {ts.is_vip === 1 ? (
                         <div className="flex flex-col items-start gap-1">
-                          <span className="inline-flex items-center gap-1 bg-amber-50/80 text-amber-600 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-amber-200/50">
-                            <CheckCircle size={10} /> Ya
+                          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-600 px-2.5 py-0.5 rounded-lg text-[10px] font-bold border border-amber-200/50">
+                            <CheckCircle size={10} className="fill-amber-50" /> Ya
                           </span>
-                          {ts.vip_name && <span className="text-[9px] font-bold text-gray-400 truncate max-w-[100px]">{ts.vip_name}</span>}
+                          {ts.vip_name && ts.vip_name !== 'null' && (
+                            <span className="text-[9px] font-bold text-gray-400 truncate max-w-[100px]" title={ts.vip_name}>{ts.vip_name}</span>
+                          )}
                         </div>
                       ) : (
-                        <span className="inline-flex items-center gap-1 bg-rose-50/50 text-rose-500 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-100">
-                          <XCircle size={10} /> Tidak
+                        <span className="inline-flex items-center gap-1 bg-gray-50 text-gray-400 px-2 py-0.5 rounded-lg text-[10px] font-semibold border border-gray-200/50">
+                          <XCircle size={10} className="text-gray-300" /> Tidak
                         </span>
                       )}
                     </td>
                     <td className="px-8 py-6 whitespace-nowrap">
                       {ts.status_hari_raya === 1 ? (
-                        <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-600 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-200/50">
-                          <CheckCircle size={10} /> Ya
+                        <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-600 px-2.5 py-0.5 rounded-lg text-[10px] font-bold border border-rose-200/50">
+                          <CheckCircle size={10} className="fill-rose-50" /> Ya
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 bg-rose-50/50 text-rose-500 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-100 opacity-60">
-                          <XCircle size={10} /> Tidak
+                        <span className="inline-flex items-center gap-1 bg-gray-50 text-gray-400 px-2 py-0.5 rounded-lg text-[10px] font-semibold border border-gray-200/50">
+                          <XCircle size={10} className="text-gray-300" /> Tidak
                         </span>
                       )}
                     </td>
                     <td className="px-8 py-6 whitespace-nowrap">
                       {ts.status_hari_libur === 1 ? (
-                        <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-indigo-200/50">
-                          <CheckCircle size={10} /> Ya
+                        <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 px-2.5 py-0.5 rounded-lg text-[10px] font-bold border border-indigo-200/50">
+                          <CheckCircle size={10} className="fill-indigo-50" /> Ya
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 bg-rose-50/50 text-rose-500 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-100 opacity-60">
-                          <XCircle size={10} /> Tidak
+                        <span className="inline-flex items-center gap-1 bg-gray-50 text-gray-400 px-2 py-0.5 rounded-lg text-[10px] font-semibold border border-gray-200/50">
+                          <XCircle size={10} className="text-gray-300" /> Tidak
                         </span>
                       )}
                     </td>
