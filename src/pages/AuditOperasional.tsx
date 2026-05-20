@@ -187,9 +187,6 @@ export default function AuditOperasional() {
           'Keterangan Perubahan': item.keterangan_data || (item.action === 'LOGIN' ? 'Session Established' : 'System Snapshot Logged'),
           'Aktor (User)': actorName,
           'Email Aktor': actorEmail,
-          'IP Address': item.ip_address,
-          'Data Lama (Old Data)': item.old_data || '',
-          'Data Baru (New Data)': item.new_data || '',
         };
       });
 
@@ -208,9 +205,6 @@ export default function AuditOperasional() {
         { wch: 50 },  // Keterangan Perubahan
         { wch: 25 },  // Aktor
         { wch: 30 },  // Email Aktor
-        { wch: 18 },  // IP Address
-        { wch: 40 },  // Data Lama
-        { wch: 40 },  // Data Baru
       ];
       worksheet['!cols'] = colWidths;
 
