@@ -14,7 +14,10 @@ import {
   ArrowRight,
   Activity,
   Globe,
-  RotateCcw
+  RotateCcw,
+  Download,
+  Calendar,
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Swal from 'sweetalert2';
@@ -52,6 +55,9 @@ export default function AuditOperasional() {
   const [selectedTable, setSelectedTable] = useState<string>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [isExporting, setIsExporting] = useState(false);
 
   const fetchAuditData = async () => {
     if (!user) return;
@@ -126,6 +132,113 @@ export default function AuditOperasional() {
     }
   };
 
+  const handleExportExcel = async () => {
+    if (filteredData.length === 0) {
+      Swal.fire({
+        title: 'Tidak Ada Data',
+        text: 'Tidak ada data audit trail yang cocok dengan filter saat ini untuk diekspor.',
+        icon: 'warning',
+        confirmButtonColor: '#1e3a5f',
+        customClass: { popup: 'rounded-[32px]' }
+      });
+      return;
+    }
+
+    setIsExporting(true);
+    Swal.fire({
+      title: 'Mempersiapkan Laporan...',
+      text: 'Sedang mengekspor data audit trail ke Excel. Mohon tunggu...',
+      icon: 'info',
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+      customClass: { popup: 'rounded-[32px] px-8 py-6' }
+    });
+
+    try {
+      // Load SheetJS dynamically from CDN
+      const XLSX = await new Promise<any>((resolve, reject) => {
+        if ((window as any).XLSX) {
+          resolve((window as any).XLSX);
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+        script.onload = () => resolve((window as any).XLSX);
+        script.onerror = (err) => reject(new Error('Gagal memuat pustaka XLSX dari CDN.'));
+        document.body.appendChild(script);
+      });
+
+      // Prepare Rows
+      const excelRows = filteredData.map((item) => {
+        const actorName = item.users?.nama_customer || 'System Process';
+        const actorEmail = item.users?.email || 'automated@system.com';
+        const entityName = item.nama_driver || (item.action === 'LOGIN' ? actorName : 'SYSTEM');
+        const entityId = item.employee_id || (item.action === 'LOGIN' ? 'ACCESS' : 'INTERNAL');
+        
+        return {
+          'Tanggal & Waktu': new Date(item.audit_date).toLocaleString('id-ID'),
+          'Tipe Aktivitas (Action)': item.action,
+          'Tabel Sumber': item.source_table,
+          'Nama Driver / Entitas Terkait': entityName,
+          'ID Driver / Kode Akses': entityId,
+          'Keterangan Perubahan': item.keterangan_data || (item.action === 'LOGIN' ? 'Session Established' : 'System Snapshot Logged'),
+          'Aktor (User)': actorName,
+          'Email Aktor': actorEmail,
+          'IP Address': item.ip_address,
+          'Data Lama (Old Data)': item.old_data || '',
+          'Data Baru (New Data)': item.new_data || '',
+        };
+      });
+
+      // Create Workbook & Worksheet
+      const worksheet = XLSX.utils.json_to_sheet(excelRows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Audit Trail Report');
+
+      // Set Column Widths
+      const colWidths = [
+        { wch: 22 },  // Tanggal & Waktu
+        { wch: 22 },  // Tipe Aktivitas
+        { wch: 25 },  // Tabel Sumber
+        { wch: 30 },  // Nama Driver / Entitas
+        { wch: 22 },  // ID Driver / Kode Akses
+        { wch: 50 },  // Keterangan Perubahan
+        { wch: 25 },  // Aktor
+        { wch: 30 },  // Email Aktor
+        { wch: 18 },  // IP Address
+        { wch: 40 },  // Data Lama
+        { wch: 40 },  // Data Baru
+      ];
+      worksheet['!cols'] = colWidths;
+
+      const now = new Date();
+      const dateString = now.getFullYear() +
+        String(now.getMonth() + 1).padStart(2, '0') +
+        String(now.getDate()).padStart(2, '0') + '_' +
+        String(now.getHours()).padStart(2, '0') +
+        String(now.getMinutes()).padStart(2, '0');
+
+      const fileName = `SIGAPS_Audit_Trail_Report_${dateString}.xlsx`;
+
+      XLSX.writeFile(workbook, fileName);
+      Swal.close();
+    } catch (err: any) {
+      console.error('Failed to export audit trail to excel:', err);
+      Swal.fire({
+        title: 'Ekspor Gagal',
+        text: err.message || 'Terjadi kesalahan saat memproduksi file Excel.',
+        icon: 'error',
+        confirmButtonColor: '#1e3a5f',
+        customClass: { popup: 'rounded-[32px]' }
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   useEffect(() => {
     fetchAuditData();
   }, [user]);
@@ -139,6 +252,20 @@ export default function AuditOperasional() {
 
     // Filter by Table
     if (selectedTable !== 'ALL' && item.source_table !== selectedTable) return false;
+
+    // Filter by Date From (startDate)
+    if (startDate) {
+      const itemDate = new Date(item.audit_date).setHours(0, 0, 0, 0);
+      const filterStart = new Date(startDate).setHours(0, 0, 0, 0);
+      if (itemDate < filterStart) return false;
+    }
+
+    // Filter by Date To (endDate)
+    if (endDate) {
+      const itemDate = new Date(item.audit_date).setHours(0, 0, 0, 0);
+      const filterEnd = new Date(endDate).setHours(23, 59, 59, 999);
+      if (itemDate > filterEnd) return false;
+    }
 
     const matchesSearch = 
       item.source_table.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -407,14 +534,24 @@ export default function AuditOperasional() {
             Monitoring system-wide activity and operational data modifications.
           </p>
         </div>
-        <button 
-          onClick={fetchAuditData}
-          disabled={loading}
-          className="flex items-center gap-2 bg-white border border-gray-200 px-5 py-3 rounded-2xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all shadow-sm active:scale-95 disabled:opacity-50"
-        >
-          <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-          Refresh Activity
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={handleExportExcel}
+            disabled={isExporting || filteredData.length === 0}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl text-sm font-bold transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download size={18} />
+            {isExporting ? 'Exporting...' : 'Export Excel'}
+          </button>
+          <button 
+            onClick={fetchAuditData}
+            disabled={loading}
+            className="flex items-center gap-2 bg-white border border-gray-200 px-5 py-3 rounded-2xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+          >
+            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+            Refresh Activity
+          </button>
+        </div>
       </div>
 
       {/* Stats Quick View */}
@@ -439,13 +576,14 @@ export default function AuditOperasional() {
 
       {/* Table Section */}
       <div className="bg-white border border-gray-200 rounded-[2.5rem] shadow-[0_4px_30px_-4px_rgba(0,0,0,0.05)] overflow-hidden">
-        <div className="p-8 border-b border-gray-50 flex flex-col md:flex-row gap-6 justify-between items-center">
-          <div className="flex flex-col md:flex-row flex-1 w-full gap-4">
+        <div className="p-8 border-b border-gray-50 space-y-6">
+          {/* Row 1: Search & Page Count */}
+          <div className="flex flex-col lg:flex-row gap-4 justify-between items-stretch lg:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <input 
                 type="text" 
-                placeholder="Search by driver ID or name..."
+                placeholder="Search by driver ID, name, action, or table..."
                 className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all placeholder:text-gray-300 shadow-inner"
                 value={searchTerm}
                 onChange={(e) => {
@@ -455,37 +593,7 @@ export default function AuditOperasional() {
               />
             </div>
             
-            <div className="flex gap-2">
-              <select 
-                value={selectedAction}
-                onChange={(e) => {
-                  setSelectedAction(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="bg-gray-50 border-none rounded-2xl text-[10px] font-black uppercase tracking-widest px-6 py-4 focus:ring-2 focus:ring-[#1e3a5f]/10 outline-none shadow-inner text-gray-600 appearance-none cursor-pointer hover:bg-gray-100 transition-colors"
-              >
-                <option value="ALL">All Actions</option>
-                <option value="UPDATE">Update</option>
-                <option value="LOGIN">Login</option>
-                <option value="INSERT">Insert</option>
-                <option value="DELETE">Delete</option>
-                <option value="ROLLBACK">Rollback</option>
-              </select>
-
-              <select 
-                value={selectedTable}
-                onChange={(e) => {
-                  setSelectedTable(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="bg-gray-50 border-none rounded-2xl text-[10px] font-black uppercase tracking-widest px-6 py-4 focus:ring-2 focus:ring-[#1e3a5f]/10 outline-none shadow-inner text-gray-600 appearance-none cursor-pointer hover:bg-gray-100 transition-colors"
-              >
-                <option value="ALL">All Tables</option>
-                {Array.from(new Set(data.map(item => item.source_table))).map(table => (
-                  <option key={table} value={table}>{table.replace(/_/g, ' ')}</option>
-                ))}
-              </select>
-
+            <div className="flex gap-3 items-center shrink-0">
               <select 
                 value={itemsPerPage}
                 onChange={(e) => {
@@ -499,11 +607,109 @@ export default function AuditOperasional() {
                 <option value={50}>50 per page</option>
                 <option value={100}>100 per page</option>
               </select>
+              
+              <div className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-5 py-3.5 rounded-2xl shadow-inner shrink-0">
+                <Globe size={14} className="text-emerald-500" />
+                <span>IP Tracker Active</span>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest">
-            <Globe size={14} />
-            <span>IP Tracker Active</span>
+
+          {/* Row 2: Advanced Date & Type Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50/50 p-6 rounded-3xl border border-gray-100">
+            {/* Date From */}
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5 px-1">
+                <Calendar size={10} className="text-blue-500" /> Date From
+              </label>
+              <div className="relative">
+                <input 
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full bg-white border border-gray-100 rounded-2xl text-xs font-bold text-gray-700 px-4 py-3 focus:ring-2 focus:ring-[#1e3a5f]/10 outline-none shadow-sm cursor-pointer hover:bg-gray-50 transition-colors"
+                />
+                {startDate && (
+                  <button 
+                    onClick={() => { setStartDate(''); setCurrentPage(1); }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Date To */}
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5 px-1">
+                <Calendar size={10} className="text-blue-500" /> Date To
+              </label>
+              <div className="relative">
+                <input 
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => {
+                    setEndDate(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full bg-white border border-gray-100 rounded-2xl text-xs font-bold text-gray-700 px-4 py-3 focus:ring-2 focus:ring-[#1e3a5f]/10 outline-none shadow-sm cursor-pointer hover:bg-gray-50 transition-colors"
+                />
+                {endDate && (
+                  <button 
+                    onClick={() => { setEndDate(''); setCurrentPage(1); }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Action Type */}
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5 px-1">
+                <Activity size={10} className="text-blue-500" /> Action Type
+              </label>
+              <select 
+                value={selectedAction}
+                onChange={(e) => {
+                  setSelectedAction(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full bg-white border border-gray-100 rounded-2xl text-xs font-bold text-gray-700 px-4 py-3 focus:ring-2 focus:ring-[#1e3a5f]/10 outline-none shadow-sm cursor-pointer hover:bg-gray-50 transition-colors"
+              >
+                <option value="ALL">All Actions</option>
+                <option value="UPDATE">Update</option>
+                <option value="LOGIN">Login</option>
+                <option value="INSERT">Insert</option>
+                <option value="DELETE">Delete</option>
+                <option value="ROLLBACK">Rollback</option>
+              </select>
+            </div>
+
+            {/* Table Source */}
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5 px-1">
+                <Database size={10} className="text-blue-500" /> Table Source
+              </label>
+              <select 
+                value={selectedTable}
+                onChange={(e) => {
+                  setSelectedTable(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full bg-white border border-gray-100 rounded-2xl text-xs font-bold text-gray-700 px-4 py-3 focus:ring-2 focus:ring-[#1e3a5f]/10 outline-none shadow-sm cursor-pointer hover:bg-gray-50 transition-colors"
+              >
+                <option value="ALL">All Tables</option>
+                {Array.from(new Set(data.map(item => item.source_table))).map(table => (
+                  <option key={table} value={table}>{table.replace(/_/g, ' ')}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
