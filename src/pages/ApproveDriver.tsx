@@ -325,6 +325,10 @@ export default function ApproveDriver() {
 
       // 2. Fetch daily expenses in parallel for all filtered records
       const expenseFetches = filteredData.map(async (ts) => {
+        const platMobil = ts.user_ratings && ts.user_ratings.length > 0
+          ? Array.from(new Set(ts.user_ratings.map(r => r.vehicle_plate).filter(Boolean))).join(', ') || '-'
+          : '-';
+
         try {
           const response = await fetch(`${import.meta.env.VITE_URL_API_DRIVER}daily-expenses-date/${ts.employee_id}/${ts.date_timesheets}`);
           const result = await response.json();
@@ -333,6 +337,7 @@ export default function ApproveDriver() {
               id_timesheets_mitra: ts.id_timesheets_mitra,
               employee_id: ts.employee_id,
               date_timesheets: ts.date_timesheets,
+              platMobil: platMobil,
               expenses: result.data
             };
           }
@@ -343,6 +348,7 @@ export default function ApproveDriver() {
           id_timesheets_mitra: ts.id_timesheets_mitra,
           employee_id: ts.employee_id,
           date_timesheets: ts.date_timesheets,
+          platMobil: platMobil,
           expenses: []
         };
       });
@@ -378,10 +384,15 @@ export default function ApproveDriver() {
         const totalExpensesValue = dailyExpensesList.reduce((sum: number, exp: any) => sum + (Number(exp.expenses_value) || 0), 0);
         const expensesSummaryStr = dailyExpensesList.map((exp: any) => `${exp.type_pengeluaran || 'Lain-lain'}: Rp ${(exp.expenses_value || 0).toLocaleString('id-ID')} (${exp.expenses_notes || ''})`).join(' | ');
 
+        const platMobil = ts.user_ratings && ts.user_ratings.length > 0
+          ? Array.from(new Set(ts.user_ratings.map(r => r.vehicle_plate).filter(Boolean))).join(', ') || '-'
+          : '-';
+
         return {
           'Tanggal': formatDate(ts.date_timesheets),
           'ID Driver': ts.employee_id,
           'Nama Driver': driverName,
+          'Plat Mobil': platMobil,
           'Jam Masuk': getDisplayTimeEntry(ts),
           'Odometer Masuk (KM)': kmIn,
           'Jam Keluar': getDisplayTimeExit(ts),
@@ -412,6 +423,7 @@ export default function ApproveDriver() {
             'Tanggal': formatDate(item.date_timesheets),
             'ID Driver': item.employee_id,
             'Nama Driver': driverName,
+            'Plat Mobil': item.platMobil || '-',
             'Tipe Pengeluaran': exp.type_pengeluaran || 'Lain-lain',
             'Nilai Pengeluaran (Rp)': exp.expenses_value || 0,
             'Catatan/Keterangan': exp.expenses_notes || '',
@@ -432,6 +444,7 @@ export default function ApproveDriver() {
         { wch: 15 },  // Tanggal
         { wch: 15 },  // ID Driver
         { wch: 25 },  // Nama Driver
+        { wch: 18 },  // Plat Mobil
         { wch: 12 },  // Jam Masuk
         { wch: 20 },  // Odometer Masuk
         { wch: 12 },  // Jam Keluar
@@ -458,6 +471,7 @@ export default function ApproveDriver() {
             'Tanggal': '',
             'ID Driver': '',
             'Nama Driver': '',
+            'Plat Mobil': '',
             'Tipe Pengeluaran': 'Tidak ada data pengeluaran',
             'Nilai Pengeluaran (Rp)': 0,
             'Catatan/Keterangan': '',
@@ -472,6 +486,7 @@ export default function ApproveDriver() {
         { wch: 15 },  // Tanggal
         { wch: 15 },  // ID Driver
         { wch: 25 },  // Nama Driver
+        { wch: 18 },  // Plat Mobil
         { wch: 20 },  // Tipe Pengeluaran
         { wch: 22 },  // Nilai Pengeluaran (Rp)
         { wch: 35 },  // Catatan/Keterangan
