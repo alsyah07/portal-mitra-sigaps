@@ -494,6 +494,31 @@ export default function ApproveDriver() {
       ];
       detailedExpensesWorksheet['!cols'] = detailedColWidths;
 
+      // 5c. Group expenses by Plat Mobil and create separate worksheets (tabs)
+      const expensesByPlate: { [plate: string]: any[] } = {};
+
+      detailedExpensesRows.forEach((row) => {
+        const rawPlate = (row['Plat Mobil'] || '').trim();
+        if (rawPlate && rawPlate !== '-') {
+          // Excel sheet name validation: max 31 chars, no special chars \ / ? * : [ ]
+          const cleanPlate = rawPlate.replace(/[\\\?\*:\/\[\]]/g, '').trim().substring(0, 31);
+          if (cleanPlate) {
+            if (!expensesByPlate[cleanPlate]) {
+              expensesByPlate[cleanPlate] = [];
+            }
+            expensesByPlate[cleanPlate].push(row);
+          }
+        }
+      });
+
+      // Append separate sheets for each Plat Mobil
+      Object.keys(expensesByPlate).sort().forEach((plateName) => {
+        const plateRows = expensesByPlate[plateName];
+        const plateWorksheet = XLSX.utils.json_to_sheet(plateRows);
+        XLSX.utils.book_append_sheet(workbook, plateWorksheet, `EXP - ${plateName}`);
+        plateWorksheet['!cols'] = detailedColWidths;
+      });
+
       // 6. Write Workbook File
       const now = new Date();
       const dateString = now.getFullYear() +
