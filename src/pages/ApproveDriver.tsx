@@ -379,8 +379,6 @@ export default function ApproveDriver() {
         const expensesSummaryStr = dailyExpensesList.map((exp: any) => `${exp.type_pengeluaran || 'Lain-lain'}: Rp ${(exp.expenses_value || 0).toLocaleString('id-ID')} (${exp.expenses_notes || ''})`).join(' | ');
 
         return {
-          'No': idx + 1,
-          'ID Timesheet': ts.id_timesheets_mitra,
           'Tanggal': formatDate(ts.date_timesheets),
           'ID Driver': ts.employee_id,
           'Nama Driver': driverName,
@@ -405,15 +403,12 @@ export default function ApproveDriver() {
 
       // 4. Prepare Sheet 2 (Laporan Pengeluaran Detail) Rows
       const detailedExpensesRows: any[] = [];
-      let expenseIndex = 1;
 
       timesheetExpenses.forEach((item) => {
         const driverName = drivers.find(d => d.employee_id === item.employee_id)?.full_name || 'Verified Transport Partner';
 
         item.expenses.forEach((exp: any) => {
           detailedExpensesRows.push({
-            'No': expenseIndex++,
-            'ID Timesheet': item.id_timesheets_mitra,
             'Tanggal': formatDate(item.date_timesheets),
             'ID Driver': item.employee_id,
             'Nama Driver': driverName,
@@ -434,8 +429,6 @@ export default function ApproveDriver() {
 
       // Set Column Widths for Sheet 1
       const colWidths = [
-        { wch: 6 },   // No
-        { wch: 15 },  // ID Timesheet
         { wch: 15 },  // Tanggal
         { wch: 15 },  // ID Driver
         { wch: 25 },  // Nama Driver
@@ -462,8 +455,6 @@ export default function ApproveDriver() {
       const detailedExpensesWorksheet = XLSX.utils.json_to_sheet(
         detailedExpensesRows.length > 0 ? detailedExpensesRows : [
           {
-            'No': '',
-            'ID Timesheet': '',
             'Tanggal': '',
             'ID Driver': '',
             'Nama Driver': '',
@@ -478,8 +469,6 @@ export default function ApproveDriver() {
 
       // Set Column Widths for Sheet 2
       const detailedColWidths = [
-        { wch: 6 },   // No
-        { wch: 15 },  // ID Timesheet
         { wch: 15 },  // Tanggal
         { wch: 15 },  // ID Driver
         { wch: 25 },  // Nama Driver
