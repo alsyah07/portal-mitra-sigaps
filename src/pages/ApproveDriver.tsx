@@ -153,6 +153,11 @@ export default function ApproveDriver() {
       title = 'Setujui Timesheet?';
       text = 'Catatan ini akan ditandai sebagai terverifikasi.';
       icon = 'success';
+    } else if (status === 0) {
+      title = 'Batalkan Persetujuan?';
+      text = 'Timesheet ini akan dikembalikan ke status Menunggu Persetujuan.';
+      icon = 'warning';
+      confirmButtonColor = '#e11d48';
     } else if (status === -1) {
       title = 'Tolak Timesheet?';
       text = 'Harap berikan alasan penolakan:';
@@ -1183,6 +1188,13 @@ export default function ApproveDriver() {
                       <CheckCircle size={16} /> Setujui
                     </button>
                   </>
+                ) : (ts.approved_timesheets[0]?.status_approve ?? 0) === 1 ? (
+                  <button 
+                    onClick={() => handleApprove(ts.id_timesheets_mitra, 0)}
+                    className="px-6 py-2.5 rounded-xl font-bold text-sm text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all flex items-center gap-2 shadow-md hover:shadow-lg active:scale-95"
+                  >
+                    <XCircle size={16} /> Batal Approve
+                  </button>
                 ) : null}
               </div>
             </div>
@@ -1820,14 +1832,26 @@ export default function ApproveDriver() {
                              </button>
                            </div>
                         ) : (
-                          <div className="h-10 px-3 flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl">
-                            {(ts.approved_timesheets[0]?.status_approve ?? 0) === 1 ? (
-                              <CheckCircle size={14} className="text-emerald-500" />
-                            ) : (
-                              <XCircle size={14} className="text-rose-500" />
-                            )}
-                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Finalized</span>
-                          </div>
+                           <div className="flex items-center gap-1.5 ml-2 border-l border-gray-100 pl-3">
+                             <div className="h-10 px-3 flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl">
+                               {(ts.approved_timesheets[0]?.status_approve ?? 0) === 1 ? (
+                                 <CheckCircle size={14} className="text-emerald-500" />
+                               ) : (
+                                 <XCircle size={14} className="text-rose-500" />
+                               )}
+                               <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Finalized</span>
+                             </div>
+                             {(ts.approved_timesheets[0]?.status_approve ?? 0) === 1 && (
+                               <button 
+                                 onClick={() => handleApprove(ts.id_timesheets_mitra, 0)}
+                                 className="h-10 px-3 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/50 rounded-xl transition-all active:scale-95 flex items-center gap-1.5 shadow-sm group/cancel"
+                                 title="Batal Approve"
+                               >
+                                 <XCircle size={14} className="group-hover/cancel:rotate-12 transition-transform" />
+                                 <span className="text-[10px] font-black uppercase tracking-widest">Batal Approve</span>
+                               </button>
+                             )}
+                           </div>
                         )}
                       </div>
                     </td>
