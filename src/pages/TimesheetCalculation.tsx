@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { 
-  ChevronLeft, 
+import {
+  ChevronLeft,
   Download
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -13,7 +13,7 @@ export default function TimesheetCalculation() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, token } = useAuth();
-  
+
   const period = searchParams.get('period') || new Date().toISOString().slice(0, 7); // YYYY-MM
   const [loading, setLoading] = useState(true);
   const [driverInfo, setDriverInfo] = useState<Driver | null>(null);
@@ -21,20 +21,20 @@ export default function TimesheetCalculation() {
     timesheets: [],
     agreement: null
   });
-  
+
   const reportRef = React.useRef<HTMLDivElement>(null);
   const printRef = React.useRef<HTMLDivElement>(null);
 
   const exportToPDF = async () => {
     if (!printRef.current) return;
-    
+
     const element = printRef.current;
     const { jsPDF } = (window as any).jspdf;
     const html2canvas = (window as any).html2canvas;
 
     try {
       const canvas = await html2canvas(element, {
-        scale: 2, 
+        scale: 2,
         useCORS: true,
         allowTaint: true,
         logging: false,
@@ -54,7 +54,7 @@ export default function TimesheetCalculation() {
               if (value && (value.includes('oklch') || value.includes('oklab'))) {
                 if (prop === 'color') el.style.color = '#111827';
                 else if (prop === 'backgroundColor') {
-                  if (!value.includes('rgb(254, 226, 226)')) { 
+                  if (!value.includes('rgb(254, 226, 226)')) {
                     el.style.backgroundColor = el.tagName === 'TH' ? '#1e3a5f' : '#ffffff';
                   }
                 }
@@ -80,7 +80,7 @@ export default function TimesheetCalculation() {
           }
         }
       });
-      
+
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'landscape',
@@ -90,11 +90,11 @@ export default function TimesheetCalculation() {
         initialView: 'FitH'
       });
 
-      const margin = 5; 
+      const margin = 5;
       const pdfWidth = pdf.internal.pageSize.getWidth() - (margin * 2);
       const pdfHeight = pdf.internal.pageSize.getHeight() - (margin * 2);
       const imgProps = pdf.getImageProperties(imgData);
-      
+
       let renderWidth = pdfWidth;
       let renderHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
@@ -123,7 +123,7 @@ export default function TimesheetCalculation() {
       try {
         setLoading(true);
         console.log(`Fetching data for Employee: ${employeeId}, Customer: ${user?.code_customer}`);
-        
+
         const driverRes = await fetch(`${import.meta.env.VITE_URL_API_DRIVER}drivers/code_company/${user?.code_customer}`);
         const driverData = await driverRes.json();
         const rawDriver = driverData.data.find((d: any) => d.employee_id === employeeId);
@@ -141,7 +141,7 @@ export default function TimesheetCalculation() {
         });
         const result = await res.json();
         console.log('Calculation Data Received:', result);
-        
+
         if (result.status === 'success') {
           setData(result.data);
         }
@@ -157,10 +157,10 @@ export default function TimesheetCalculation() {
   const generateDays = () => {
     if (!period) return [];
     const [year, month] = period.split('-').map(Number);
-    
+
     let startDate: Date, endDate: Date;
     const cutOff = data.agreement?.cutOffDate;
-    
+
     if (cutOff && cutOff.includes('-')) {
       const [startD, endD] = cutOff.split('-').map(Number);
       startDate = new Date(year, month - 2, startD);
@@ -181,18 +181,18 @@ export default function TimesheetCalculation() {
       const yearNum = dateObj.getFullYear();
       const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
       const dayIndex = dateObj.getDay(); // 0 (Sun) - 6 (Sat)
-      
+
       const workDayConfig = data.agreement?.hari_kerja?.find(hk => {
         const fbIdx = Number(hk.day_index);
         return fbIdx === dayIndex || (fbIdx === 7 && dayIndex === 0);
       });
 
-      const isWeekend = workDayConfig 
-        ? Number(workDayConfig.iwo_workdays_status) !== 1 
-        : (data.agreement?.workDays?.length 
-            ? !data.agreement.workDays.includes(dayName) 
-            : (dayName === 'Saturday' || dayName === 'Sunday'));
-      
+      const isWeekend = workDayConfig
+        ? Number(workDayConfig.iwo_workdays_status) !== 1
+        : (data.agreement?.workDays?.length
+          ? !data.agreement.workDays.includes(dayName)
+          : (dayName === 'Saturday' || dayName === 'Sunday'));
+
       const currentStr = yearNum + '-' + String(monthNum + 1).padStart(2, '0') + '-' + String(dayNum).padStart(2, '0');
       const rawTimesheet = data.timesheets.find(ts => {
         if (!ts.date_timesheets) return false;
@@ -205,22 +205,31 @@ export default function TimesheetCalculation() {
       let workHours = 0;
       let displayWork = "-";
       let displayTotal = "-";
-      
+
       if (timesheet && timesheet.time_entry && timesheet.time_exit) {
         const [h1, m1] = timesheet.time_entry.split(':').map(Number);
         const [h2, m2] = timesheet.time_exit.split(':').map(Number);
         const diffMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
         const breakMinutes = diffMinutes > 240 ? 60 : 0;
         const netMinutes = Math.max(0, diffMinutes - breakMinutes);
-        
-        const workHoursOnly = Math.floor(netMinutes / 60);
-        const workMinutesOnly = netMinutes % 60;
-        
-        displayWork = `${workHoursOnly}:${String(workMinutesOnly).padStart(2, '0')}`;
-        
-        const decimalMinutes = workMinutesOnly >= 45 ? 0.75 : (workMinutesOnly >= 30 ? 0.5 : 0);
-        workHours = workHoursOnly + decimalMinutes;
-        
+
+        // 1. Actual work time (red / work)
+        const actualHours = Math.floor(netMinutes / 60);
+        const actualMinutes = netMinutes % 60;
+        displayWork = `${actualHours}:${String(actualMinutes).padStart(2, '0')}`;
+
+        // 2. Rounded decimal hours (green / total)
+        let roundedMinutes = 0;
+        if (actualMinutes >= 55) {
+          roundedMinutes = 1.0;
+        } else if (actualMinutes >= 45) {
+          roundedMinutes = 0.75;
+        } else if (actualMinutes >= 30) {
+          roundedMinutes = 0.5;
+        } else {
+          roundedMinutes = 0.0;
+        }
+        workHours = actualHours + roundedMinutes;
         displayTotal = String(workHours);
       }
 
@@ -271,13 +280,13 @@ export default function TimesheetCalculation() {
   if (loading) return <div className="p-10 text-center font-black text-gray-400 animate-pulse">GENERATING CALCULATION ENGINE...</div>;
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="space-y-6 max-w-[1600px] mx-auto"
     >
       <div className="flex items-center justify-between no-print px-4">
-        <button 
+        <button
           onClick={() => navigate(-1)}
           className="group flex items-center gap-3 text-gray-400 hover:text-blue-600 font-bold text-sm transition-all duration-300"
         >
@@ -287,7 +296,7 @@ export default function TimesheetCalculation() {
           Back to List
         </button>
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={exportToPDF}
             className="flex items-center gap-3 px-8 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#2c4a73] rounded-2xl text-xs font-black uppercase tracking-[0.15em] text-white hover:shadow-2xl hover:shadow-blue-200/50 hover:-translate-y-0.5 active:scale-95 transition-all duration-300"
           >
@@ -297,26 +306,26 @@ export default function TimesheetCalculation() {
       </div>
 
       {/* Main UI View (Modern Style) */}
-      <motion.div 
+      <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
-        ref={reportRef} 
+        ref={reportRef}
         className="bg-white border border-gray-100 rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] overflow-hidden"
       >
         <div className="p-10 border-b border-gray-100 bg-gradient-to-br from-gray-50/50 to-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-blue-50/30 rounded-full blur-3xl -mr-48 -mt-48 pointer-events-none" />
-          
+
           <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-8">
             <div className="space-y-6 flex-1">
               <h2 className="text-3xl font-black text-gray-900 tracking-tight uppercase flex items-center gap-4">
                 <div className="h-10 w-1.5 bg-gradient-to-b from-blue-600 to-blue-400 rounded-full" />
                 Timesheet Calculation
               </h2>
-              
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                 <div className="bg-white/80 backdrop-blur-sm border border-gray-100 rounded-[2.5rem] p-8 shadow-sm">
-                   <table className="w-full border-collapse text-[12px]">
+                  <table className="w-full border-collapse text-[12px]">
                     <tbody>
                       <MetaRow label="Employee Name" value={driverInfo?.nama_lengkap || '-'} />
                       <MetaRow label="Position" value="Driver Specialist" />
@@ -329,13 +338,13 @@ export default function TimesheetCalculation() {
                         const cutOff = data.agreement?.cutOffDate;
                         let start, end;
                         if (cutOff && cutOff.includes('-')) {
-                            const [startD, endD] = cutOff.split('-').map(Number);
-                            start = new Date(year, month - 2, startD).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-                            end = new Date(year, month - 1, endD).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                          const [startD, endD] = cutOff.split('-').map(Number);
+                          start = new Date(year, month - 2, startD).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                          end = new Date(year, month - 1, endD).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
                         } else {
-                            const lastDay = new Date(year, month, 0).getDate();
-                            start = new Date(year, month - 1, 1).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-                            end = new Date(year, month - 1, lastDay).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                          const lastDay = new Date(year, month, 0).getDate();
+                          start = new Date(year, month - 1, 1).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                          end = new Date(year, month - 1, lastDay).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
                         }
                         return `${start} - ${end}`;
                       })()} isLast={true} />
@@ -344,17 +353,17 @@ export default function TimesheetCalculation() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                   <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-6 rounded-[2rem] text-white shadow-lg shadow-blue-100">
-                      <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Total Insentif</p>
-                      <p className="text-2xl font-black tracking-tighter">Rp {totals.insentif.toLocaleString()}</p>
-                   </div>
-                   <div className="bg-white border border-gray-100 p-6 rounded-[2rem] shadow-sm">
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Performance Rate</p>
-                      <div className="flex items-end gap-2">
-                        <p className="text-2xl font-black text-gray-900 tracking-tighter">{avgPerformance}</p>
-                        <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-lg mb-1">avg/month</span>
-                      </div>
-                   </div>
+                  <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-6 rounded-[2rem] text-white shadow-lg shadow-blue-100">
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Total Insentif</p>
+                    <p className="text-2xl font-black tracking-tighter">Rp {totals.insentif.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-white border border-gray-100 p-6 rounded-[2rem] shadow-sm">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Performance Rate</p>
+                    <div className="flex items-end gap-2">
+                      <p className="text-2xl font-black text-gray-900 tracking-tighter">{avgPerformance}</p>
+                      <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-lg mb-1">avg/month</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -388,8 +397,8 @@ export default function TimesheetCalculation() {
             </thead>
             <tbody className="font-bold text-gray-700">
               {days.map((day, idx) => (
-                <tr 
-                  key={idx} 
+                <tr
+                  key={idx}
                   className={`border-b border-gray-100 hover:bg-blue-50/40 transition-colors ${day.isWeekend ? 'bg-red-50 text-red-600' : ''}`}
                 >
                   <td className="px-2 py-3 border-r border-gray-100 text-center font-black text-gray-400">{day.no.split(' ')[1]}</td>
@@ -414,29 +423,29 @@ export default function TimesheetCalculation() {
               ))}
             </tbody>
             <tfoot>
-               <tr className="bg-gray-900 text-white font-black uppercase text-[10px] text-center">
-                 <td colSpan={5} className="px-2 py-6">Summary Calculation</td>
-                 <td className="px-2 py-6 opacity-40">-</td>
-                 <td className="px-2 py-6 opacity-40">-</td>
-                 <td className="px-2 py-6 text-blue-400 font-mono">{totals.insentif.toLocaleString()}</td>
-                 <td className="px-2 py-6 font-mono">{totals.premium.toLocaleString()}</td>
-                 <td className="px-2 py-6 font-mono">{totals.vip.toLocaleString()}</td>
-                 <td className="px-2 py-6 font-mono">{totals.holiday.toLocaleString()}</td>
-                 <td className="px-2 py-6 font-mono">{totals.religious.toLocaleString()}</td>
-                 <td className="px-2 py-6 text-emerald-400 font-mono">{avgPerformance}</td>
-                 <td className="px-2 py-6 text-[8px] tracking-[0.2em] font-black opacity-60">Report Finalized</td>
-               </tr>
+              <tr className="bg-gray-900 text-white font-black uppercase text-[10px] text-center">
+                <td colSpan={5} className="px-2 py-6">Summary Calculation</td>
+                <td className="px-2 py-6 opacity-40">-</td>
+                <td className="px-2 py-6 opacity-40">-</td>
+                <td className="px-2 py-6 text-blue-400 font-mono">{totals.insentif.toLocaleString()}</td>
+                <td className="px-2 py-6 font-mono">{totals.premium.toLocaleString()}</td>
+                <td className="px-2 py-6 font-mono">{totals.vip.toLocaleString()}</td>
+                <td className="px-2 py-6 font-mono">{totals.holiday.toLocaleString()}</td>
+                <td className="px-2 py-6 font-mono">{totals.religious.toLocaleString()}</td>
+                <td className="px-2 py-6 text-emerald-400 font-mono">{avgPerformance}</td>
+                <td className="px-2 py-6 text-[8px] tracking-[0.2em] font-black opacity-60">Report Finalized</td>
+              </tr>
             </tfoot>
           </table>
         </div>
       </motion.div>
 
       {/* Hidden Formal Print Template (Strictly for PDF Capture) */}
-      <div 
+      <div
         id="formal-print-template"
         ref={printRef}
-        style={{ 
-          display: 'block', 
+        style={{
+          display: 'block',
           opacity: 0,
           position: 'absolute',
           left: '-20000px',
@@ -451,10 +460,10 @@ export default function TimesheetCalculation() {
           <h2 className="text-3xl font-bold text-black uppercase mb-8 tracking-tighter">
             Timesheet Calculation
           </h2>
-          
+
           <div className="flex justify-between items-start mb-8">
             <div className="w-[900px]">
-               <table className="w-full border-collapse border border-black text-[13px]">
+              <table className="w-full border-collapse border border-black text-[13px]">
                 <tbody>
                   <PrintMetaRow label="Employee Name" value={driverInfo?.nama_lengkap || '-'} />
                   <PrintMetaRow label="Position" value="Driver" />
@@ -466,13 +475,13 @@ export default function TimesheetCalculation() {
                     const cutOff = data.agreement?.cutOffDate;
                     let start, end;
                     if (cutOff && cutOff.includes('-')) {
-                        const [startD, endD] = cutOff.split('-').map(Number);
-                        start = new Date(year, month - 2, startD).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
-                        end = new Date(year, month - 1, endD).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
+                      const [startD, endD] = cutOff.split('-').map(Number);
+                      start = new Date(year, month - 2, startD).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
+                      end = new Date(year, month - 1, endD).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
                     } else {
-                        const lastDay = new Date(year, month, 0).getDate();
-                        start = new Date(year, month - 1, 1).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
-                        end = new Date(year, month - 1, lastDay).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
+                      const lastDay = new Date(year, month, 0).getDate();
+                      start = new Date(year, month - 1, 1).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
+                      end = new Date(year, month - 1, lastDay).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
                     }
                     return `${start}      ${end}`;
                   })()} isLast={true} />
@@ -481,13 +490,13 @@ export default function TimesheetCalculation() {
             </div>
 
             <div className="w-[500px]">
-               <div className="border border-black flex flex-col h-[150px]">
-                  <div className="bg-gray-100 border-b border-black px-4 py-2 text-[12px] font-bold uppercase text-center">
-                    Acknowledged by :
-                  </div>
-                  <div className="flex-1" />
-                  <div className="border-t border-black h-10" />
-               </div>
+              <div className="border border-black flex flex-col h-[150px]">
+                <div className="bg-gray-100 border-b border-black px-4 py-2 text-[12px] font-bold uppercase text-center">
+                  Acknowledged by :
+                </div>
+                <div className="flex-1" />
+                <div className="border-t border-black h-10" />
+              </div>
             </div>
           </div>
 
@@ -517,8 +526,8 @@ export default function TimesheetCalculation() {
             </thead>
             <tbody className="font-bold text-black bg-white">
               {days.map((day, idx) => (
-                <tr 
-                  key={idx} 
+                <tr
+                  key={idx}
                   style={day.isWeekend ? { backgroundColor: '#fee2e2', color: '#be123c' } : {}}
                 >
                   <td className="px-1 py-2 border border-black text-center font-bold" style={day.isWeekend ? { backgroundColor: '#fee2e2', color: '#be123c' } : {}}>Day {idx + 1}</td>
@@ -541,31 +550,31 @@ export default function TimesheetCalculation() {
               ))}
             </tbody>
             <tfoot>
-               <tr className="bg-white font-bold uppercase text-[14px] text-center border border-black">
-                 <td colSpan={5} className="px-2 py-4 border border-black"></td>
-                 <td className="px-2 py-4 border border-black">
-                    {(() => {
-                      const totalWorkMinutes = days.reduce((acc, d) => {
-                        if (d.totalWork && d.totalWork !== "-") {
-                          const [h, m] = d.totalWork.split(':').map(Number);
-                          return acc + (h * 60 + m);
-                        }
-                        return acc;
-                      }, 0);
-                      const totalWorkHoursPart = Math.floor(totalWorkMinutes / 60);
-                      const totalWorkMinsPart = totalWorkMinutes % 60;
-                      return `${totalWorkHoursPart}:${String(totalWorkMinsPart).padStart(2, '0')}`;
-                    })()}
-                 </td>
-                 <td className="px-2 py-4 border border-black"></td>
-                 <td className="px-2 py-4 border border-black font-mono">{totals.insentif.toLocaleString()}</td>
-                 <td className="px-2 py-4 border border-black font-mono">{totals.premium.toLocaleString()}</td>
-                 <td className="px-2 py-4 border border-black font-mono">{totals.vip.toLocaleString()}</td>
-                 <td className="px-2 py-4 border border-black font-mono">{totals.holiday.toLocaleString()}</td>
-                 <td className="px-2 py-4 border border-black font-mono">{totals.religious.toLocaleString()}</td>
-                 <td className="px-2 py-4 border border-black text-emerald-700">{avgPerformance}</td>
-                 <td className="px-2 py-4 border border-black"></td>
-               </tr>
+              <tr className="bg-white font-bold uppercase text-[14px] text-center border border-black">
+                <td colSpan={5} className="px-2 py-4 border border-black"></td>
+                <td className="px-2 py-4 border border-black">
+                  {(() => {
+                    const totalWorkMinutes = days.reduce((acc, d) => {
+                      if (d.totalWork && d.totalWork !== "-") {
+                        const [h, m] = d.totalWork.split(':').map(Number);
+                        return acc + (h * 60 + m);
+                      }
+                      return acc;
+                    }, 0);
+                    const totalWorkHoursPart = Math.floor(totalWorkMinutes / 60);
+                    const totalWorkMinsPart = totalWorkMinutes % 60;
+                    return `${totalWorkHoursPart}:${String(totalWorkMinsPart).padStart(2, '0')}`;
+                  })()}
+                </td>
+                <td className="px-2 py-4 border border-black"></td>
+                <td className="px-2 py-4 border border-black font-mono">{totals.insentif.toLocaleString()}</td>
+                <td className="px-2 py-4 border border-black font-mono">{totals.premium.toLocaleString()}</td>
+                <td className="px-2 py-4 border border-black font-mono">{totals.vip.toLocaleString()}</td>
+                <td className="px-2 py-4 border border-black font-mono">{totals.holiday.toLocaleString()}</td>
+                <td className="px-2 py-4 border border-black font-mono">{totals.religious.toLocaleString()}</td>
+                <td className="px-2 py-4 border border-black text-emerald-700">{avgPerformance}</td>
+                <td className="px-2 py-4 border border-black"></td>
+              </tr>
             </tfoot>
           </table>
         </div>
