@@ -211,13 +211,21 @@ export default function TimesheetCalculation() {
         const [h2, m2] = timesheet.time_exit.split(':').map(Number);
         const diffMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
         const breakMinutes = diffMinutes > 240 ? 60 : 0;
-        workHours = (diffMinutes - breakMinutes) / 60;
-        displayWork = `${Math.floor(workHours)}:00`;
-        displayTotal = `${Math.floor(workHours)}:00`;
+        const netMinutes = Math.max(0, diffMinutes - breakMinutes);
+        
+        const workHoursOnly = Math.floor(netMinutes / 60);
+        const workMinutesOnly = netMinutes % 60;
+        
+        displayWork = `${workHoursOnly}:${String(workMinutesOnly).padStart(2, '0')}`;
+        
+        const decimalMinutes = workMinutesOnly >= 45 ? 0.75 : (workMinutesOnly >= 30 ? 0.5 : 0);
+        workHours = workHoursOnly + decimalMinutes;
+        
+        displayTotal = String(workHours);
       }
 
       const upahPerJam = parseInt(data.agreement?.upahPerJam || "0");
-      const insentif = isApproved ? (Math.round(workHours) * upahPerJam) : 0;
+      const insentif = isApproved ? (workHours * upahPerJam) : 0;
       const performanceRate = timesheet ? parseFloat(timesheet.performance_rate || "0") : 0;
 
       daysList.push({
@@ -535,7 +543,20 @@ export default function TimesheetCalculation() {
             <tfoot>
                <tr className="bg-white font-bold uppercase text-[14px] text-center border border-black">
                  <td colSpan={5} className="px-2 py-4 border border-black"></td>
-                 <td className="px-2 py-4 border border-black">{Math.floor(days.reduce((acc, d) => acc + (parseFloat(d.totalWork) || 0), 0))}:00</td>
+                 <td className="px-2 py-4 border border-black">
+                    {(() => {
+                      const totalWorkMinutes = days.reduce((acc, d) => {
+                        if (d.totalWork && d.totalWork !== "-") {
+                          const [h, m] = d.totalWork.split(':').map(Number);
+                          return acc + (h * 60 + m);
+                        }
+                        return acc;
+                      }, 0);
+                      const totalWorkHoursPart = Math.floor(totalWorkMinutes / 60);
+                      const totalWorkMinsPart = totalWorkMinutes % 60;
+                      return `${totalWorkHoursPart}:${String(totalWorkMinsPart).padStart(2, '0')}`;
+                    })()}
+                 </td>
                  <td className="px-2 py-4 border border-black"></td>
                  <td className="px-2 py-4 border border-black font-mono">{totals.insentif.toLocaleString()}</td>
                  <td className="px-2 py-4 border border-black font-mono">{totals.premium.toLocaleString()}</td>
