@@ -210,7 +210,7 @@ export default function TimesheetCalculation() {
         const [h1, m1] = timesheet.time_entry.split(':').map(Number);
         const [h2, m2] = timesheet.time_exit.split(':').map(Number);
         const diffMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
-        const breakMinutes = diffMinutes > 240 ? 60 : 0;
+        const breakMinutes = 0;
         const netMinutes = Math.max(0, diffMinutes - breakMinutes);
 
         // 1. Actual work time (red / work)
@@ -221,13 +221,13 @@ export default function TimesheetCalculation() {
         // 2. Rounded decimal hours (green / total)
         let roundedMinutes = 0;
         if (actualMinutes >= 55) {
-          roundedMinutes = 1.0;
+          roundedMinutes = 1.00;
         } else if (actualMinutes >= 45) {
           roundedMinutes = 0.75;
         } else if (actualMinutes >= 30) {
-          roundedMinutes = 0.5;
+          roundedMinutes = 0.50;
         } else {
-          roundedMinutes = 0.0;
+          roundedMinutes = 0.00;
         }
         workHours = actualHours + roundedMinutes;
         displayTotal = String(workHours);
@@ -235,24 +235,25 @@ export default function TimesheetCalculation() {
 
       const upahPerJam = parseInt(data.agreement?.upahPerJam || "0");
       const insentif = isApproved ? (workHours * upahPerJam) : 0;
-      const performanceRate = timesheet ? parseFloat(timesheet.performance_rate || "0") : 0;
+      const performanceRate = (isApproved && rawTimesheet) ? parseFloat(String(rawTimesheet.performance_rate || "0")) : 0;
 
       daysList.push({
         no: `Day ${dayCounter++}`,
         date: dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'),
         day: dayName,
-        in: timesheet?.time_entry || "-",
-        out: timesheet?.time_exit || "-",
+        in: (isApproved && rawTimesheet) ? (rawTimesheet.time_entry || "-") : "-",
+        out: (isApproved && rawTimesheet) ? (rawTimesheet.time_exit || "-") : "-",
         totalWork: displayWork,
         effective: displayTotal,
         insentif: insentif,
-        premium: (isApproved && timesheet?.is_premium) ? parseInt(data.agreement?.tunjanganMobilMewah || "0") : 0,
-        vip: (isApproved && timesheet?.is_vip) ? parseInt(data.agreement?.tunjanganKonsumsiVIP || "0") : 0,
-        holiday: (isApproved && (timesheet?.status_hari_libur || isWeekend)) ? parseInt(data.agreement?.insentifLiburNasional || "0") : 0,
-        religious: (isApproved && timesheet?.status_hari_raya) ? parseInt(data.agreement?.tunjanganHariRaya || "0") : 0,
+        premium: (isApproved && rawTimesheet?.is_premium) ? parseInt(data.agreement?.tunjanganMobilMewah || "0") : 0,
+        vip: (isApproved && rawTimesheet?.is_vip) ? parseInt(data.agreement?.tunjanganKonsumsiVIP || "0") : 0,
+        holiday: (isApproved && (rawTimesheet?.status_hari_libur || isWeekend)) ? parseInt(data.agreement?.insentifLiburNasional || "0") : 0,
+        religious: (isApproved && rawTimesheet?.status_hari_raya) ? parseInt(data.agreement?.tunjanganHariRaya || "0") : 0,
         performanceRate: performanceRate,
         isWeekend,
-        penugasan: timesheet?.penugasan || ""
+        penugasan: (isApproved && rawTimesheet) ? (rawTimesheet.penugasan || "") : "",
+        isApproved
       });
 
       current.setDate(current.getDate() + 1);
@@ -268,12 +269,16 @@ export default function TimesheetCalculation() {
     acc.vip += day.vip;
     acc.holiday += day.holiday;
     acc.religious += day.religious;
+    const eff = day.effective ? parseFloat(day.effective) : NaN;
+    if (!isNaN(eff)) {
+      acc.totalEffective += eff;
+    }
     if (day.performanceRate > 0) {
       acc.totalPerf += day.performanceRate;
       acc.perfCount += 1;
     }
     return acc;
-  }, { insentif: 0, premium: 0, vip: 0, holiday: 0, religious: 0, totalPerf: 0, perfCount: 0 });
+  }, { insentif: 0, premium: 0, vip: 0, holiday: 0, religious: 0, totalEffective: 0, totalPerf: 0, perfCount: 0 });
 
   const avgPerformance = totals.perfCount > 0 ? (totals.totalPerf / totals.perfCount).toFixed(2) : '-';
 
@@ -426,12 +431,12 @@ export default function TimesheetCalculation() {
               <tr className="bg-gray-900 text-white font-black uppercase text-[10px] text-center">
                 <td colSpan={5} className="px-2 py-6">Summary Calculation</td>
                 <td className="px-2 py-6 opacity-40">-</td>
-                <td className="px-2 py-6 opacity-40">-</td>
-                <td className="px-2 py-6 text-blue-400 font-mono">{totals.insentif.toLocaleString()}</td>
-                <td className="px-2 py-6 font-mono">{totals.premium.toLocaleString()}</td>
-                <td className="px-2 py-6 font-mono">{totals.vip.toLocaleString()}</td>
-                <td className="px-2 py-6 font-mono">{totals.holiday.toLocaleString()}</td>
-                <td className="px-2 py-6 font-mono">{totals.religious.toLocaleString()}</td>
+                <td className="px-2 py-6 font-mono">{totals.totalEffective > 0 ? totals.totalEffective : '-'}</td>
+                <td className="px-2 py-6 text-blue-400 font-mono">Rp {totals.insentif.toLocaleString()}</td>
+                <td className="px-2 py-6 font-mono">Rp {totals.premium.toLocaleString()}</td>
+                <td className="px-2 py-6 font-mono">Rp {totals.vip.toLocaleString()}</td>
+                <td className="px-2 py-6 font-mono">Rp {totals.holiday.toLocaleString()}</td>
+                <td className="px-2 py-6 font-mono">Rp {totals.religious.toLocaleString()}</td>
                 <td className="px-2 py-6 text-emerald-400 font-mono">{avgPerformance}</td>
                 <td className="px-2 py-6 text-[8px] tracking-[0.2em] font-black opacity-60">Report Finalized</td>
               </tr>
@@ -566,12 +571,12 @@ export default function TimesheetCalculation() {
                     return `${totalWorkHoursPart}:${String(totalWorkMinsPart).padStart(2, '0')}`;
                   })()}
                 </td>
-                <td className="px-2 py-4 border border-black"></td>
-                <td className="px-2 py-4 border border-black font-mono">{totals.insentif.toLocaleString()}</td>
-                <td className="px-2 py-4 border border-black font-mono">{totals.premium.toLocaleString()}</td>
-                <td className="px-2 py-4 border border-black font-mono">{totals.vip.toLocaleString()}</td>
-                <td className="px-2 py-4 border border-black font-mono">{totals.holiday.toLocaleString()}</td>
-                <td className="px-2 py-4 border border-black font-mono">{totals.religious.toLocaleString()}</td>
+                <td className="px-2 py-4 border border-black">{totals.totalEffective > 0 ? totals.totalEffective : ''}</td>
+                <td className="px-2 py-4 border border-black font-mono">Rp {totals.insentif.toLocaleString()}</td>
+                <td className="px-2 py-4 border border-black font-mono">Rp {totals.premium.toLocaleString()}</td>
+                <td className="px-2 py-4 border border-black font-mono">Rp {totals.vip.toLocaleString()}</td>
+                <td className="px-2 py-4 border border-black font-mono">Rp {totals.holiday.toLocaleString()}</td>
+                <td className="px-2 py-4 border border-black font-mono">Rp {totals.religious.toLocaleString()}</td>
                 <td className="px-2 py-4 border border-black text-emerald-700">{avgPerformance}</td>
                 <td className="px-2 py-4 border border-black"></td>
               </tr>

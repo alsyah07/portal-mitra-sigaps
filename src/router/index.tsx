@@ -21,7 +21,7 @@ export default function AppRouter() {
       <Route element={<PrivateRoute />}>
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Overview />} />
-         
+
           <Route path="approve" element={<ApproveDriver />} />
           <Route path="driver" element={<DriverDatabase />} />
           <Route path="timesheets" element={<DriverTimesheets />} />
@@ -30,7 +30,7 @@ export default function AppRouter() {
           <Route path="backups" element={<BackupManagement />} />
           <Route path="users" element={<UserManagement />} />
         </Route>
-        
+
         {/* Redirect Root to Dashboard */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Route>

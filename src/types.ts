@@ -95,6 +95,7 @@ export interface Timesheet {
   status_hari_libur?: number | null;
   penugasan: string;
   created_at: string;
+  performance_rate?: string | number | null;
   approved_timesheets: ApprovedTimesheet[];
   foto_timesheets: FotoTimesheet[];
   lokasi_timesheets: LokasiTimesheet[];
