@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Driver } from '../types';
 import { motion } from 'motion/react';
-import { 
+import {
   Search,
   Filter,
   FileText,
@@ -29,7 +29,7 @@ export default function DriverTimesheets() {
       setLoading(true);
       const response = await fetch(`${import.meta.env.VITE_URL_API_DRIVER}drivers/code_company/${user.code_customer}`);
       const result = await response.json();
-      
+
       if (result.data) {
         const mappedDrivers: Driver[] = result.data.map((d: any) => ({
           id: d.id,
@@ -59,7 +59,7 @@ export default function DriverTimesheets() {
     fetchDrivers();
   }, [user]);
 
-  const filteredDrivers = drivers.filter(d => 
+  const filteredDrivers = drivers.filter(d =>
     d.nama_lengkap.toLowerCase().includes(searchTerm.toLowerCase()) ||
     d.employee_id.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -67,7 +67,7 @@ export default function DriverTimesheets() {
   const paginatedDrivers = filteredDrivers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       className="space-y-8"
@@ -127,19 +127,19 @@ export default function DriverTimesheets() {
                 <tr key={driver.id} className="hover:bg-blue-50/40 group transition-all">
                   <td className="px-8 py-6 text-xs font-black text-gray-300">{(currentPage - 1) * itemsPerPage + index + 1}</td>
                   <td className="px-8 py-6">
-                    <div 
+                    <div
                       onClick={() => navigate(`/dashboard/timesheets/calculation/${driver.employee_id}`)}
                       className="h-10 w-10 rounded-xl bg-gray-100 overflow-hidden border border-gray-200 cursor-pointer hover:scale-110 transition-transform duration-300"
                     >
-                       <img 
-                        src={driver.foto || `https://ui-avatars.com/api/?name=${driver.nama_lengkap}&background=1e3a5f&color=fff&bold=true`} 
-                        alt="" 
+                      <img
+                        src={driver.foto || `https://ui-avatars.com/api/?name=${driver.nama_lengkap}&background=1e3a5f&color=fff&bold=true`}
+                        alt=""
                         className="w-full h-full object-cover"
-                       />
+                      />
                     </div>
                   </td>
                   <td className="px-8 py-6">
-                    <div 
+                    <div
                       onClick={() => navigate(`/dashboard/timesheets/calculation/${driver.employee_id}`)}
                       className="flex flex-col cursor-pointer group/info"
                     >
@@ -157,15 +157,14 @@ export default function DriverTimesheets() {
                     <div className="flex items-center gap-2">
                       {Array.from({ length: 3 }).map((_, i) => {
                         const date = new Date();
-                        const d = new Date(date.getFullYear(), date.getMonth() - i, 1);
+                        const d = new Date(date.getFullYear(), date.getMonth() + 1 - i, 1);
                         const label = d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
                         const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                        
                         return (
-                          <button 
+                          <button
                             key={i}
                             onClick={() => navigate(`/dashboard/timesheets/calculation/${driver.employee_id}?period=${value}`)}
-                            className={i === 0 
+                            className={i === 0
                               ? "flex items-center gap-1.5 text-[10px] font-black text-white bg-[#6366f1] px-4 py-2 rounded-xl shadow-md shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 uppercase tracking-widest"
                               : "flex items-center gap-1.5 text-[10px] font-black text-[#3b82f6] bg-white border-2 border-blue-500 px-4 py-2 rounded-xl hover:bg-blue-50 transition-all active:scale-95 uppercase tracking-widest"
                             }
@@ -184,21 +183,21 @@ export default function DriverTimesheets() {
         </div>
 
         <div className="px-8 py-5 border-t border-gray-100 flex items-center justify-between bg-white">
-           <button 
+          <button
             disabled={currentPage === 1}
             onClick={() => setCurrentPage(p => p - 1)}
             className="px-4 py-2 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-gray-50 disabled:opacity-30"
-           >
+          >
             Prev
-           </button>
-           <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Page {currentPage} of {Math.ceil(filteredDrivers.length / itemsPerPage) || 1}</span>
-           <button 
+          </button>
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Page {currentPage} of {Math.ceil(filteredDrivers.length / itemsPerPage) || 1}</span>
+          <button
             disabled={currentPage === Math.ceil(filteredDrivers.length / itemsPerPage)}
             onClick={() => setCurrentPage(p => p + 1)}
             className="px-4 py-2 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-gray-50 disabled:opacity-30"
-           >
+          >
             Next
-           </button>
+          </button>
         </div>
       </div>
     </motion.div>
