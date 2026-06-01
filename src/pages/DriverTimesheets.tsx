@@ -157,7 +157,7 @@ export default function DriverTimesheets() {
                     <div className="flex items-center gap-2">
                       {Array.from({ length: 3 }).map((_, i) => {
                         const date = new Date();
-                        const d = new Date(date.getFullYear(), date.getMonth() + 1 - i, 1);
+                        const d = new Date(date.getFullYear(), date.getMonth() - i, 1);
                         const label = d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
                         const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                         return (
