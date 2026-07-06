@@ -647,7 +647,10 @@ export default function ApproveDriver() {
       driverFilter === 'all' || 
       ts.employee_id === driverFilter;
 
-    return matchesSearch && matchesStatus && matchesDate && matchesDriver;
+    const driverName = drivers.find(d => d.employee_id === ts.employee_id)?.full_name || 'Verified Transport Partner';
+    const isNotVerifiedTransport = driverName !== 'Verified Transport Partner';
+
+    return matchesSearch && matchesStatus && matchesDate && matchesDriver && isNotVerifiedTransport;
   });
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
