@@ -219,16 +219,17 @@ export default function TimesheetCalculation() {
         displayWork = `${actualHours}:${String(actualMinutes).padStart(2, '0')}`;
 
         // 2. Rounded decimal hours (green / total)
-        let roundedMinutes = 0;
-        if (actualMinutes >= 55) {
-          roundedMinutes = 1.00;
-        } else if (actualMinutes >= 45) {
-          roundedMinutes = 0.75;
-        } else if (actualMinutes >= 30) {
-          roundedMinutes = 0.50;
-        } else {
-          roundedMinutes = 0.00;
-        }
+        // let roundedMinutes = 0;
+        // if (actualMinutes >= 55) {
+        //   roundedMinutes = 1.00;
+        // } else if (actualMinutes >= 45) {
+        //   roundedMinutes = 0.75;
+        // } else if (actualMinutes >= 30) {
+        //   roundedMinutes = 0.50;
+        // } else {
+        //   roundedMinutes = 0.00;
+        // }
+        let roundedMinutes = Math.round((actualMinutes / 60) * 100) / 100;
         workHours = actualHours + roundedMinutes;
         displayTotal = String(workHours);
       }
