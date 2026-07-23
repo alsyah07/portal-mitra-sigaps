@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Driver } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Users, 
+import {
+  Users,
   Search,
   Filter,
   Eye,
@@ -29,9 +29,32 @@ export default function DriverDatabase() {
   const [driverPage, setDriverPage] = useState(1);
   const [driverItemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Modal State
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
+  const [driverDetail, setDriverDetail] = useState<any>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  useEffect(() => {
+    if (selectedDriver) {
+      fetchDriverDetail(selectedDriver.employee_id);
+    } else {
+      setDriverDetail(null);
+    }
+  }, [selectedDriver]);
+
+  const fetchDriverDetail = async (employeeId: string) => {
+    try {
+      setLoadingDetail(true);
+      const res = await fetch(`https://api_rekruitmen_go.sigapdriver.com/detail-data-by-employee/${employeeId}`);
+      const data = await res.json();
+      setDriverDetail(data?.data || data);
+    } catch (err) {
+      console.error('Failed to fetch driver details', err);
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
 
   const fetchDrivers = async () => {
     if (!user) return;
@@ -40,7 +63,7 @@ export default function DriverDatabase() {
       const response = await fetch(`${import.meta.env.VITE_URL_API_DRIVER}drivers/code_company/${user.code_customer}`);
       console.log(`${import.meta.env.VITE_URL_API_DRIVER}drivers/code_company/${user.code_customer}`);
       const result = await response.json();
-      
+
       if (result.data) {
         // Map the new API structure to our Driver interface
         const mappedDrivers: Driver[] = result.data.map((d: any) => ({
@@ -49,7 +72,7 @@ export default function DriverDatabase() {
           employee_id: d.employee_id,
           nama_lengkap: d.full_name,
           phone: d.phonenumber || '-',
-          foto: d.photo, 
+          foto: d.photo,
           status: 'Active',
           company_name: d.company_name,
           iwo_name: d.iwo_name,
@@ -77,7 +100,7 @@ export default function DriverDatabase() {
     fetchDrivers();
   }, [user]);
 
-  const filteredDrivers = drivers.filter(d => 
+  const filteredDrivers = drivers.filter(d =>
     d.nama_lengkap.toLowerCase().includes(searchTerm.toLowerCase()) ||
     d.employee_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
     d.id.includes(searchTerm)
@@ -86,7 +109,7 @@ export default function DriverDatabase() {
   const paginatedDrivers = filteredDrivers.slice((driverPage - 1) * driverItemsPerPage, driverPage * driverItemsPerPage);
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
@@ -160,14 +183,14 @@ export default function DriverDatabase() {
                 <tr>
                   <td colSpan={7} className="px-8 py-20 text-center">
                     <div className="flex flex-col items-center gap-2">
-                       <Search size={32} className="text-gray-200" />
-                       <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No matching records found.</p>
+                      <Search size={32} className="text-gray-200" />
+                      <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No matching records found.</p>
                     </div>
                   </td>
                 </tr>
               ) : (
                 paginatedDrivers.map((driver, index) => (
-                  <motion.tr 
+                  <motion.tr
                     key={driver.id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -176,13 +199,13 @@ export default function DriverDatabase() {
                   >
                     <td className="px-8 py-6 text-xs font-black text-gray-300">{(driverPage - 1) * driverItemsPerPage + index + 1}</td>
                     <td className="px-8 py-6">
-                      <div 
+                      <div
                         onClick={() => setSelectedDriver(driver)}
                         className="relative shrink-0 w-fit cursor-pointer group/photo hover:scale-110 transition-all duration-300"
                       >
                         <div className="h-12 w-12 rounded-2xl p-0.5 bg-gradient-to-tr from-blue-500 to-indigo-600 shadow-md group-hover/photo:shadow-blue-200">
-                          <img 
-                            src={driver.foto || `https://ui-avatars.com/api/?name=${driver.nama_lengkap}&background=fff&color=1e3a5f&bold=true&font-size=0.4`} 
+                          <img
+                            src={driver.foto || `https://ui-avatars.com/api/?name=${driver.nama_lengkap}&background=fff&color=1e3a5f&bold=true&font-size=0.4`}
                             alt={driver.nama_lengkap}
                             className="w-full h-full rounded-[14px] object-cover bg-white"
                             referrerPolicy="no-referrer"
@@ -208,7 +231,7 @@ export default function DriverDatabase() {
                       </div>
                     </td>
                     <td className="px-8 py-6">
-                      <div 
+                      <div
                         onClick={() => setSelectedDriver(driver)}
                         className="flex flex-col cursor-pointer group/profile"
                       >
@@ -225,7 +248,7 @@ export default function DriverDatabase() {
 
                     <td className="px-8 py-6 text-right">
                       <div className="flex justify-end gap-2">
-                        <button 
+                        <button
                           onClick={() => setSelectedDriver(driver)}
                           title="View Details"
                           className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
@@ -249,7 +272,7 @@ export default function DriverDatabase() {
 
         {/* Standardized Pagination Footer */}
         <div className="px-8 py-5 border-t border-gray-100 flex items-center justify-between bg-white text-sm">
-          <button 
+          <button
             onClick={() => setDriverPage(p => Math.max(1, p - 1))}
             disabled={driverPage === 1}
             className="px-4 py-2 border border-gray-100 rounded-xl font-bold font-sans text-[11px] text-gray-400 hover:bg-gray-50 disabled:opacity-30 flex items-center gap-2 transition-all shadow-sm uppercase tracking-widest"
@@ -267,7 +290,7 @@ export default function DriverDatabase() {
               </button>
             ))}
           </div>
-          <button 
+          <button
             onClick={() => setDriverPage(p => Math.min(Math.ceil(filteredDrivers.length / driverItemsPerPage) || 1, p + 1))}
             disabled={driverPage === Math.ceil(filteredDrivers.length / driverItemsPerPage) || filteredDrivers.length === 0}
             className="px-4 py-2 border border-gray-100 rounded-xl font-bold font-sans text-[11px] text-gray-400 hover:bg-gray-50 disabled:opacity-30 flex items-center gap-2 transition-all shadow-sm uppercase tracking-widest"
@@ -280,134 +303,252 @@ export default function DriverDatabase() {
       {/* Driver Detail Modal */}
       <AnimatePresence>
         {selectedDriver && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedDriver(null)}
-              className="absolute inset-0 bg-gray-900/40 backdrop-blur-md"
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
+              className="relative w-full max-w-4xl bg-[#f8fafc] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] ring-1 ring-white/50"
             >
-              <div className="relative h-32 bg-gradient-to-r from-blue-600 to-indigo-700">
-                <button 
+              {/* Header Cover */}
+              <div className="relative h-36 shrink-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 overflow-hidden">
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
+                <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white/20 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-0 left-20 w-32 h-32 bg-blue-400/30 rounded-full blur-2xl"></div>
+
+                <button
                   onClick={() => setSelectedDriver(null)}
-                  className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-2xl text-white transition-colors"
+                  className="absolute top-5 right-5 p-2.5 bg-black/10 hover:bg-black/20 rounded-2xl text-white transition-all backdrop-blur-md"
                 >
-                  <X size={20} />
+                  <X size={20} strokeWidth={2.5} />
                 </button>
-                <div className="absolute -bottom-12 left-10 p-1.5 bg-white rounded-[2rem] shadow-xl">
-                   <div className="h-24 w-24 rounded-[1.75rem] bg-gray-100 overflow-hidden border-2 border-gray-50">
-                      <img 
-                        src={selectedDriver.foto || `https://ui-avatars.com/api/?name=${selectedDriver.nama_lengkap}&background=1e3a5f&color=fff&bold=true&font-size=0.4`} 
-                        alt={selectedDriver.nama_lengkap} 
-                        className="w-full h-full object-cover"
-                      />
-                   </div>
+                <div className="absolute -bottom-12 left-10 p-1.5 bg-[#f8fafc] rounded-[2rem] shadow-lg">
+                  <div className="h-24 w-24 rounded-[1.6rem] bg-white overflow-hidden border border-gray-100 group cursor-pointer">
+                    <img
+                      src={selectedDriver.foto || `https://ui-avatars.com/api/?name=${selectedDriver.nama_lengkap}&background=1e3a5f&color=fff&bold=true&font-size=0.4`}
+                      alt={selectedDriver.nama_lengkap}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="pt-16 pb-10 px-10">
-                <div className="flex items-end justify-between">
+              {/* Scrollable Content */}
+              <div className="pt-16 pb-10 px-10 overflow-y-auto">
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                   <div>
-                    <h4 className="text-2xl font-black text-gray-900 tracking-tight">{selectedDriver.nama_lengkap}</h4>
-                    <p className="text-sm font-black text-blue-600 uppercase tracking-widest mt-1">Personnel Detail</p>
+                    <h4 className="text-3xl font-black text-slate-800 tracking-tight">{selectedDriver.nama_lengkap}</h4>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                        Personnel Detail
+                      </span>
+                    </div>
                   </div>
                   <div className="flex gap-2">
-                    <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-lg uppercase tracking-wider border border-emerald-100 flex items-center gap-1.5">
-                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    <span className="px-4 py-2 bg-emerald-100/50 text-emerald-700 text-[11px] font-black rounded-xl uppercase tracking-wider border border-emerald-200/50 flex items-center gap-2 shadow-sm backdrop-blur-sm">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
                       Active status
                     </span>
                   </div>
                 </div>
 
-                <div className="mt-10 grid grid-cols-2 gap-6">
-                  {/* Identification Card */}
-                  <div className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 group hover:border-blue-200 transition-colors">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2.5 bg-white rounded-xl text-blue-600 shadow-sm">
-                        <IdCard size={18} />
+                {loadingDetail ? (
+                  <div className="mt-16 flex flex-col items-center justify-center py-12">
+                    <div className="h-12 w-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin mb-4" />
+                    <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Retrieving Data...</p>
+                  </div>
+                ) : (
+                  <div className="mt-10 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Identification Card */}
+                      <div className="p-7 bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-blue-100/50"></div>
+                        <div className="relative">
+                          <div className="flex items-center gap-3 mb-6">
+                            <div className="p-3 bg-blue-50 rounded-2xl text-blue-600 shadow-sm border border-blue-100/50">
+                              <IdCard size={20} strokeWidth={2.5} />
+                            </div>
+                            <span className="text-xs font-black text-slate-700 uppercase tracking-widest">Identification</span>
+                          </div>
+                          <div className="space-y-5">
+                            <div className="grid grid-cols-2 gap-5">
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Employee Code</p>
+                                <p className="text-sm font-black text-slate-800 tracking-tight">{selectedDriver.employee_id}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">NPWP</p>
+                                <p className="text-sm font-black text-slate-800 tracking-tight">{driverDetail?.form2?.no_npwp || '-'}</p>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">KTP Number</p>
+                              <p className="text-sm font-black text-slate-800 tracking-tight">{driverDetail?.form2?.no_ktp || selectedDriver.ktp_number || '-'}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-5">
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Birth Date</p>
+                                <p className="text-sm font-black text-slate-800 tracking-tight">{selectedDriver.birth_date || '-'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Age / Gender</p>
+                                <p className="text-sm font-black text-slate-800 tracking-tight">{selectedDriver.usia || '-'} Years / {driverDetail?.form2?.gender || '-'}</p>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-5">
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Religion</p>
+                                <p className="text-sm font-black text-slate-800 tracking-tight">{driverDetail?.form2?.agama || '-'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Marital Status</p>
+                                <p className="text-sm font-black text-slate-800 tracking-tight">{driverDetail?.form2?.status_pernikahan || '-'}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Identification</span>
+
+                      {/* Contact Card */}
+                      <div className="p-7 bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-indigo-100/50"></div>
+                        <div className="relative">
+                          <div className="flex items-center gap-3 mb-6">
+                            <div className="p-3 bg-indigo-50 rounded-2xl text-indigo-600 shadow-sm border border-indigo-100/50">
+                              <Building2 size={20} strokeWidth={2.5} />
+                            </div>
+                            <span className="text-xs font-black text-slate-700 uppercase tracking-widest">Contact Information</span>
+                          </div>
+                          <div className="space-y-5">
+                            <div>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Phone Number</p>
+                              <p className="text-sm font-black text-slate-800 tracking-tight">{driverDetail?.form1?.no_telphone || selectedDriver.phonenumber || '-'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Domicile Address</p>
+                              <p className="text-sm font-bold text-slate-600 tracking-tight leading-relaxed">{driverDetail?.form2?.alamat_tempat_tinggal || selectedDriver.home_address || '-'}</p>
+                            </div>
+                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Emergency Contact</p>
+                              <p className="text-sm font-black text-slate-800 tracking-tight">{driverDetail?.form2?.nama_kontak_darurat || '-'} <span className="text-slate-500 font-bold ml-1">({driverDetail?.form2?.telpone_kontak_darurat || '-'})</span></p>
+                              <p className="text-[11px] font-black text-indigo-500 uppercase tracking-widest mt-1">{driverDetail?.form2?.hubungan_kontak_darurat || '-'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Qualifications Card */}
+                      <div className="p-7 bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50/50 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-emerald-100/50"></div>
+                        <div className="relative">
+                          <div className="flex items-center gap-3 mb-6">
+                            <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-600 shadow-sm border border-emerald-100/50">
+                              <ShieldCheck size={20} strokeWidth={2.5} />
+                            </div>
+                            <span className="text-xs font-black text-slate-700 uppercase tracking-widest">Qualifications & License</span>
+                          </div>
+                          <div className="space-y-5">
+                            <div className="grid grid-cols-2 gap-5">
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Education</p>
+                                <p className="text-sm font-black text-slate-800 tracking-tight">{driverDetail?.form2?.pendidikan_terakhir || '-'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Defensive Driving</p>
+                                <p className="text-sm font-black text-slate-800 tracking-tight">{driverDetail?.form2?.defensive_driving || '-'}</p>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 pt-2">
+                              {driverDetail?.form2?.sim_a_nomor && (
+                                <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">SIM A</p>
+                                  <p className="text-sm font-black text-slate-800 tracking-tight">{driverDetail.form2.sim_a_nomor}</p>
+                                  <p className="text-[10px] font-bold text-slate-500 mt-0.5">Valid: {driverDetail.form2.sim_a_masa_berlaku?.substring(0, 10)}</p>
+                                </div>
+                              )}
+                              {driverDetail?.form2?.sim_b1_nomor && (
+                                <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">SIM B1</p>
+                                  <p className="text-sm font-black text-slate-800 tracking-tight">{driverDetail.form2.sim_b1_nomor}</p>
+                                  <p className="text-[10px] font-bold text-slate-500 mt-0.5">Valid: {driverDetail.form2.sim_b1_masa_berlaku?.substring(0, 10)}</p>
+                                </div>
+                              )}
+                              {driverDetail?.form2?.sim_b2_nomor && (
+                                <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">SIM B2</p>
+                                  <p className="text-sm font-black text-slate-800 tracking-tight">{driverDetail.form2.sim_b2_nomor}</p>
+                                  <p className="text-[10px] font-bold text-slate-500 mt-0.5">Valid: {driverDetail.form2.sim_b2_masa_berlaku?.substring(0, 10)}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Languages & Recommendation Card */}
+                      <div className="p-7 bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50/50 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-orange-100/50"></div>
+                        <div className="relative">
+                          <div className="flex items-center gap-3 mb-6">
+                            <div className="p-3 bg-orange-50 rounded-2xl text-orange-600 shadow-sm border border-orange-100/50">
+                              <Users size={20} strokeWidth={2.5} />
+                            </div>
+                            <span className="text-xs font-black text-slate-700 uppercase tracking-widest">Languages & Referrals</span>
+                          </div>
+                          <div className="space-y-5">
+                            <div className="grid grid-cols-2 gap-5">
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">English</p>
+                                <p className="text-sm font-black text-slate-800 tracking-tight">{driverDetail?.form2?.bahasa_inggris || '-'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Japanese</p>
+                                <p className="text-sm font-black text-slate-800 tracking-tight">{driverDetail?.form2?.bahasa_jepang || '-'}</p>
+                              </div>
+                            </div>
+                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Recommendation Info</p>
+                              <p className="text-sm font-black text-slate-800 tracking-tight">{driverDetail?.form1?.nama_rekomendasi || '-'}</p>
+                              {driverDetail?.form1?.no_telphone_rekomendasi && <p className="text-xs font-bold text-slate-500 mt-0.5">{driverDetail.form1.no_telphone_rekomendasi}</p>}
+
+                              {driverDetail?.form1?.nama_pt_rekomendasi && (
+                                <div className="mt-3 pt-3 border-t border-slate-200">
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Recommendation PT</p>
+                                  <p className="text-xs font-black text-slate-700 tracking-tight">{driverDetail.form1.nama_pt_rekomendasi}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Employee Code</p>
-                        <p className="text-sm font-black text-gray-900 tracking-tight mt-0.5">{selectedDriver.employee_id}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">KTP Number</p>
-                        <p className="text-sm font-black text-gray-900 tracking-tight mt-0.5">{selectedDriver.ktp_number || '-'}</p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Birth Date</p>
-                          <p className="text-sm font-black text-gray-900 tracking-tight mt-0.5">{selectedDriver.birth_date || '-'}</p>
+
+                    {/* Customer Info Card */}
+                    {/* <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-[2rem] border border-blue-100/50 flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 w-40 h-40 bg-white/40 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                      <div className="flex items-center gap-5 relative">
+                        <div className="h-14 w-14 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm border border-white">
+                          <Briefcase size={24} strokeWidth={2.5} />
                         </div>
                         <div>
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Age</p>
-                          <p className="text-sm font-black text-gray-900 tracking-tight mt-0.5">{selectedDriver.usia || '-'} Years</p>
+                          <p className="text-[11px] font-black text-blue-500 uppercase tracking-widest mb-1">Assigned Customer / Company Unit</p>
+                          <p className="text-lg font-black text-slate-800 tracking-tight">{selectedDriver.company_name}</p>
                         </div>
                       </div>
-                    </div>
+                    </div> */}
                   </div>
-
-                  {/* Deployment Card */}
-                  <div className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 group hover:border-indigo-200 transition-colors">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2.5 bg-white rounded-xl text-indigo-600 shadow-sm">
-                        <Building2 size={18} />
-                      </div>
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Contact & Deployment</span>
-                    </div>
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Phone Number</p>
-                        <p className="text-sm font-black text-gray-900 tracking-tight mt-0.5">{selectedDriver.phonenumber || '-'}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Home Address</p>
-                        <p className="text-[11px] font-bold text-gray-600 tracking-tight mt-0.5 leading-relaxed">{selectedDriver.home_address || '-'}</p>
-                      </div>
-                      {/* <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Company Unit</p>
-                        <p className="text-sm font-black text-gray-900 tracking-tight mt-0.5">{selectedDriver.company_name}</p>
-                      </div> */}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6 p-6 bg-blue-50/50 rounded-[2rem] border border-blue-100 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm">
-                      <Briefcase size={20} />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Customer Name</p>
-                      <p className="text-sm font-black text-gray-900 tracking-tight">{selectedDriver.company_name}</p>
-                    </div>
-                  </div>
-                  {/* <button className="h-10 w-10 bg-white hover:bg-blue-600 hover:text-white rounded-xl flex items-center justify-center text-blue-600 transition-all shadow-sm active:scale-95">
-                    <ExternalLink size={18} />
-                  </button> */}
-                </div>
-
-                {/* <div className="mt-8 flex gap-3">
-                  <button 
-                    onClick={() => setSelectedDriver(null)}
-                    className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl text-sm font-black transition-all active:scale-95"
-                  >
-                    Close Registry
-                  </button>
-                  <button className="flex-[2] py-4 bg-[#1e3a5f] hover:bg-blue-600 text-white rounded-2xl text-sm font-black transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
-                    <Pencil size={16} /> Edit Personnel Profile
-                  </button>
-                </div> */}
+                )}
               </div>
             </motion.div>
           </div>
