@@ -156,10 +156,11 @@ export default function TimesheetCalculation() {
 
   const generateDays = () => {
     if (!period) return [];
+    const { timesheets, agreement } = data;
     const [year, month] = period.split('-').map(Number);
 
     let startDate: Date, endDate: Date;
-    const cutOff = data.agreement?.cutOffDate;
+    const cutOff = agreement?.cutOffDate;
 
     if (cutOff && cutOff.includes('-')) {
       const [startD, endD] = cutOff.split('-').map(Number);
@@ -180,35 +181,49 @@ export default function TimesheetCalculation() {
       const monthNum = dateObj.getMonth();
       const yearNum = dateObj.getFullYear();
       const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
-      const dayIndex = dateObj.getDay(); // 0 (Sun) - 6 (Sat)
+      const dayIndex = dateObj.getDay();
 
-      const workDayConfig = data.agreement?.hari_kerja?.find(hk => {
+      const workDayConfig = agreement?.hari_kerja?.find((hk: any) => {
         const fbIdx = Number(hk.day_index);
         return fbIdx === dayIndex || (fbIdx === 7 && dayIndex === 0);
       });
 
       const isWeekend = workDayConfig
         ? Number(workDayConfig.iwo_workdays_status) !== 1
-        : (data.agreement?.workDays?.length
-          ? !data.agreement.workDays.includes(dayName)
+        : (agreement?.workDays?.length
+          ? !agreement.workDays.includes(dayName)
           : (dayName === 'Saturday' || dayName === 'Sunday'));
 
       const currentStr = yearNum + '-' + String(monthNum + 1).padStart(2, '0') + '-' + String(dayNum).padStart(2, '0');
-      const rawTimesheet = data.timesheets.find(ts => {
+      const rawTimesheet = timesheets.find(ts => {
         if (!ts.date_timesheets) return false;
         return normalizeDate(ts.date_timesheets) === currentStr;
       });
 
-      const isApproved = rawTimesheet?.approved_timesheets?.[0]?.status_approve === 1;
+      // Daftar customer yang bypass approval timesheet (bisa disetting di .env atau tambah disini)
+      const bypassCustomersEnv = import.meta.env.VITE_BYPASS_TIMESHEET_CUSTOMERS;
+      const BYPASS_TIMESHEET_CUSTOMERS = bypassCustomersEnv ? bypassCustomersEnv.split(',') : ['KCN-ISS'];
+
+      // ubah untuk jika harus approve
+      const isApproved = BYPASS_TIMESHEET_CUSTOMERS.includes(user?.code_customer || '') ? true : rawTimesheet?.approved_timesheets?.[0]?.status_approve === 1;
+      //const isApproved = rawTimesheet?.approved_timesheets?.[0]?.status_approve === 0;
       const timesheet = isApproved ? rawTimesheet : null;
 
+      // Flexible time_exit: convert "00:xx" to "24:xx"
+      let effectiveTimeExit = rawTimesheet?.time_exit;
+      if (effectiveTimeExit && effectiveTimeExit.startsWith('00:')) {
+        effectiveTimeExit = `24:${effectiveTimeExit.substring(3)}`;
+      }
+
       let workHours = 0;
+      // Menyimpan jam kerja tanpa pembulatan untuk perhitungan uang
+      let exactWorkHours = 0;
       let displayWork = "-";
       let displayTotal = "-";
 
-      if (timesheet && timesheet.time_entry && timesheet.time_exit) {
+      if (timesheet && timesheet.time_entry && effectiveTimeExit) {
         const [h1, m1] = timesheet.time_entry.split(':').map(Number);
-        const [h2, m2] = timesheet.time_exit.split(':').map(Number);
+        const [h2, m2] = effectiveTimeExit.split(':').map(Number);
         const diffMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
         const breakMinutes = 0;
         const netMinutes = Math.max(0, diffMinutes - breakMinutes);
@@ -219,7 +234,7 @@ export default function TimesheetCalculation() {
         displayWork = `${actualHours}:${String(actualMinutes).padStart(2, '0')}`;
 
         // 2. Rounded decimal hours (green / total)
-        // let roundedMinutes = 0;
+        //  let roundedMinutes = 0;
         // if (actualMinutes >= 55) {
         //   roundedMinutes = 1.00;
         // } else if (actualMinutes >= 45) {
@@ -229,28 +244,33 @@ export default function TimesheetCalculation() {
         // } else {
         //   roundedMinutes = 0.00;
         // }
+
         let roundedMinutes = Math.round((actualMinutes / 60) * 100) / 100;
-        workHours = actualHours + roundedMinutes;
+        workHours = actualHours + roundedMinutes; // Digunakan untuk tampilan (dibulatkan)
+        exactWorkHours = netMinutes / 60; // Digunakan untuk pengali uang (tidak dibulatkan agar presisi)
         displayTotal = String(workHours);
       }
+      const upahPerJam = parseInt(agreement?.upahPerJam || "0");
+      // console.log('cekdataupahPerjam', workHours)
 
-      const upahPerJam = parseInt(data.agreement?.upahPerJam || "0");
-      const insentif = isApproved ? (workHours * upahPerJam) : 0;
-      const performanceRate = (isApproved && rawTimesheet) ? parseFloat(String(rawTimesheet.performance_rate || "0")) : 0;
+      // Insentif dikali menggunakan exactWorkHours agar hasilnya akurat (tanpa selisih pembulatan)
+      const insentif = isApproved ? Math.round(exactWorkHours * upahPerJam) : 0;
+      console.log('cekdataupahPerjam', insentif)
+      const performanceRate = (isApproved && rawTimesheet) ? parseFloat(rawTimesheet.performance_rate || "0") : 0;
 
       daysList.push({
-        no: `Day ${dayCounter++}`,
+        no: dayCounter++,
         date: dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'),
         day: dayName,
         in: (isApproved && rawTimesheet) ? (rawTimesheet.time_entry || "-") : "-",
-        out: (isApproved && rawTimesheet) ? (rawTimesheet.time_exit || "-") : "-",
+        out: (isApproved && rawTimesheet) ? (effectiveTimeExit || "-") : "-",
         totalWork: displayWork,
         effective: displayTotal,
         insentif: insentif,
-        premium: (isApproved && rawTimesheet?.is_premium) ? parseInt(data.agreement?.tunjanganMobilMewah || "0") : 0,
-        vip: (isApproved && rawTimesheet?.is_vip) ? parseInt(data.agreement?.tunjanganKonsumsiVIP || "0") : 0,
-        holiday: (isApproved && (rawTimesheet?.status_hari_libur || isWeekend)) ? parseInt(data.agreement?.insentifLiburNasional || "0") : 0,
-        religious: (isApproved && rawTimesheet?.status_hari_raya) ? parseInt(data.agreement?.tunjanganHariRaya || "0") : 0,
+        premium: (isApproved && (rawTimesheet?.is_premium || rawTimesheet?.premium_amount)) ? (rawTimesheet?.premium_amount ? Number(rawTimesheet.premium_amount) : parseInt(agreement?.tunjanganMobilMewah || "0")) : 0,
+        vip: (isApproved && (rawTimesheet?.is_vip || rawTimesheet?.vip_amount)) ? (rawTimesheet?.vip_amount ? Number(rawTimesheet.vip_amount) : parseInt(agreement?.tunjanganKonsumsiVIP || "0")) : 0,
+        holiday: (isApproved && (rawTimesheet?.status_hari_libur || isWeekend) && rawTimesheet?.time_entry) ? parseInt(agreement?.insentifLiburNasional || "0") : 0,
+        religious: (isApproved && rawTimesheet?.status_hari_raya) ? parseInt(agreement?.tunjanganHariRaya || "0") : 0,
         performanceRate: performanceRate,
         isWeekend,
         penugasan: (isApproved && rawTimesheet) ? (rawTimesheet.penugasan || "") : "",
@@ -407,7 +427,7 @@ export default function TimesheetCalculation() {
                   key={idx}
                   className={`border-b border-gray-100 hover:bg-blue-50/40 transition-colors ${day.isWeekend ? 'bg-red-50 text-red-600' : ''}`}
                 >
-                  <td className="px-2 py-3 border-r border-gray-100 text-center font-black text-gray-400">{day.no.split(' ')[1]}</td>
+                  <td className="px-2 py-3 border-r border-gray-100 text-center font-black text-gray-400">{day.no}</td>
                   <td className="px-2 py-3 border-r border-gray-100 whitespace-nowrap text-center font-mono">{day.date}</td>
                   <td className="px-2 py-3 border-r border-gray-100 text-center uppercase text-[8px]">{day.day}</td>
                   <td className="px-2 py-3 border-r border-gray-100 text-center font-mono">{day.in}</td>

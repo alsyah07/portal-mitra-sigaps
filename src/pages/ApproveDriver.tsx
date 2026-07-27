@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Timesheet, UserRating } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import Swal from 'sweetalert2';
-import { 
-  FileCheck, 
-  CheckCircle, 
-  XCircle, 
+import {
+  FileCheck,
+  CheckCircle,
+  XCircle,
   Clock,
   MapPin,
   ChevronRight,
@@ -34,7 +34,7 @@ export default function ApproveDriver() {
   const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Data Table State
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('pending');
@@ -47,7 +47,7 @@ export default function ApproveDriver() {
   const [isEditing, setIsEditing] = useState(false);
   const [editFormData, setEditFormData] = useState<Partial<Timesheet>>({});
   const [isExporting, setIsExporting] = useState(false);
-  
+
   // Expenses State
   const [expenses, setExpenses] = useState<any[]>([]);
   const [expensesLoading, setExpensesLoading] = useState(false);
@@ -128,7 +128,7 @@ export default function ApproveDriver() {
     // Check if it's unix timestamp (digits only)
     const isUnix = /^\d+$/.test(dateStr);
     const date = isUnix ? new Date(Number(dateStr) * 1000) : new Date(dateStr);
-    
+
     return date.toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'short',
@@ -205,13 +205,13 @@ export default function ApproveDriver() {
           }
         });
         const resultJson = await response.json();
-        
+
         if (resultJson.status === 'success') {
-          setTimesheets(prev => prev.map(t => t.id_timesheets_mitra === id ? { 
-            ...t, 
+          setTimesheets(prev => prev.map(t => t.id_timesheets_mitra === id ? {
+            ...t,
             approved_timesheets: [resultJson.data]
           } : t));
-          
+
           if (selectedTimesheet?.id_timesheets_mitra === id) {
             setSelectedTimesheet(prev => prev ? { ...prev, approved_timesheets: [resultJson.data] } : null);
           }
@@ -247,7 +247,7 @@ export default function ApproveDriver() {
     try {
       const response = await fetch(`${import.meta.env.VITE_URL_API}edit_timesheets/${user?.code_customer}/${selectedTimesheet.id_timesheets_mitra}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
@@ -531,7 +531,7 @@ export default function ApproveDriver() {
         String(now.getDate()).padStart(2, '0') + '_' +
         String(now.getHours()).padStart(2, '0') +
         String(now.getMinutes()).padStart(2, '0');
-      
+
       const fileName = `SIGAPS_Timesheet_Report_${dateString}.xlsx`;
 
       XLSX.writeFile(workbook, fileName);
@@ -584,7 +584,7 @@ export default function ApproveDriver() {
       default:
         return (
           <div className="flex items-center gap-2">
-            <button 
+            <button
               onClick={(e) => {
                 e.stopPropagation();
                 handleShowExpenses(employeeId, date);
@@ -594,7 +594,7 @@ export default function ApproveDriver() {
               <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
               PENGELUARAN
             </button>
-            <button 
+            <button
               onClick={(e) => {
                 e.stopPropagation();
                 const now = new Date();
@@ -622,14 +622,14 @@ export default function ApproveDriver() {
   const filteredData = timesheets.filter(ts => {
     const searchLow = search.toLowerCase();
     const currentStatus = ts.approved_timesheets[0]?.status_approve ?? 0;
-    
-    const matchesSearch = 
-      ts.employee_id.toLowerCase().includes(searchLow) || 
+
+    const matchesSearch =
+      ts.employee_id.toLowerCase().includes(searchLow) ||
       ts.code_customer.toLowerCase().includes(searchLow) ||
       (ts.penugasan || '').toLowerCase().includes(searchLow);
-    
-    const matchesStatus = 
-      statusFilter === 'all' || 
+
+    const matchesStatus =
+      statusFilter === 'all' ||
       (statusFilter === 'pending' && currentStatus === 0) ||
       (statusFilter === 'approved' && currentStatus === 1) ||
       (statusFilter === 'rejected' && currentStatus === -1);
@@ -639,12 +639,12 @@ export default function ApproveDriver() {
     const tsDate = isUnix ? new Date(Number(tsDateVal) * 1000) : new Date(tsDateVal);
     const tsDateStr = tsDate.getFullYear() + '-' + String(tsDate.getMonth() + 1).padStart(2, '0') + '-' + String(tsDate.getDate()).padStart(2, '0');
 
-    const matchesDate = 
+    const matchesDate =
       (!startDate || tsDateStr >= startDate) &&
       (!endDate || tsDateStr <= endDate);
 
-    const matchesDriver = 
-      driverFilter === 'all' || 
+    const matchesDriver =
+      driverFilter === 'all' ||
       ts.employee_id === driverFilter;
 
     const driverName = drivers.find(d => d.employee_id === ts.employee_id)?.full_name || 'Verified Transport Partner';
@@ -659,11 +659,11 @@ export default function ApproveDriver() {
   const renderDetailModal = () => {
     if (!selectedTimesheet) return null;
     const ts = selectedTimesheet;
-    
+
     return (
       <AnimatePresence>
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 lg:p-8">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -673,7 +673,7 @@ export default function ApproveDriver() {
             }}
             className="absolute inset-0 bg-gray-900/40 backdrop-blur-md"
           />
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -690,7 +690,7 @@ export default function ApproveDriver() {
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-0.5">ID: {ts.id_timesheets_mitra} • {ts.employee_id}</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => {
                   setSelectedTimesheet(null);
                   setIsEditing(false);
@@ -714,23 +714,23 @@ export default function ApproveDriver() {
                       <div className="space-y-4 p-6 bg-gray-50/50 border border-gray-100 rounded-[32px]">
                         <div className="space-y-1.5">
                           <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Employee ID</label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             readOnly
                             required
                             value={editFormData.employee_id || ''}
-                            onChange={e => setEditFormData({...editFormData, employee_id: e.target.value})}
+                            onChange={e => setEditFormData({ ...editFormData, employee_id: e.target.value })}
                             className="w-full px-5 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-blue-100 focus:border-blue-300 outline-none transition-all shadow-sm"
                           />
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Mitra Customer Code</label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             readOnly
                             required
                             value={editFormData.code_customer || ''}
-                            onChange={e => setEditFormData({...editFormData, code_customer: e.target.value})}
+                            onChange={e => setEditFormData({ ...editFormData, code_customer: e.target.value })}
                             className="w-full px-5 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-blue-100 focus:border-blue-300 outline-none transition-all shadow-sm"
                           />
                         </div>
@@ -742,7 +742,7 @@ export default function ApproveDriver() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-3 ${editFormData.is_premium === 1 ? 'bg-blue-50/50 border-blue-500' : 'bg-white border-gray-100 opacity-60'}`} onClick={() => {
                           const isPremium = editFormData.is_premium === 1 ? 0 : 1;
-                          setEditFormData({...editFormData, is_premium: isPremium});
+                          setEditFormData({ ...editFormData, is_premium: isPremium });
                         }}>
                           <div className="flex items-center justify-between">
                             <span className="text-[9px] font-black uppercase tracking-widest">Premium</span>
@@ -750,17 +750,17 @@ export default function ApproveDriver() {
                               {editFormData.is_premium === 1 && <CheckCircle size={10} />}
                             </div>
                           </div>
-                          <input 
+                          <input
                             placeholder="Pkg Name"
                             value={(editFormData.premium_name === 'null' || !editFormData.premium_name) ? '' : editFormData.premium_name}
                             onClick={e => e.stopPropagation()}
-                            onChange={e => setEditFormData({...editFormData, premium_name: e.target.value, is_premium: 1})}
+                            onChange={e => setEditFormData({ ...editFormData, premium_name: e.target.value, is_premium: 1 })}
                             className="bg-transparent border-none p-0 text-xs font-bold focus:ring-0 placeholder:text-gray-300"
                           />
                         </div>
                         <div className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-3 ${editFormData.is_vip === 1 ? 'bg-amber-50/50 border-amber-500' : 'bg-white border-gray-100 opacity-60'}`} onClick={() => {
                           const isVip = editFormData.is_vip === 1 ? 0 : 1;
-                          setEditFormData({...editFormData, is_vip: isVip});
+                          setEditFormData({ ...editFormData, is_vip: isVip });
                         }}>
                           <div className="flex items-center justify-between">
                             <span className="text-[9px] font-black uppercase tracking-widest">VIP dedicated</span>
@@ -768,17 +768,17 @@ export default function ApproveDriver() {
                               {editFormData.is_vip === 1 && <CheckCircle size={10} />}
                             </div>
                           </div>
-                          <input 
+                          <input
                             placeholder="Unit Name"
                             value={(editFormData.vip_name === 'null' || !editFormData.vip_name) ? '' : editFormData.vip_name}
                             onClick={e => e.stopPropagation()}
-                            onChange={e => setEditFormData({...editFormData, vip_name: e.target.value, is_vip: 1})}
+                            onChange={e => setEditFormData({ ...editFormData, vip_name: e.target.value, is_vip: 1 })}
                             className="bg-transparent border-none p-0 text-xs font-bold focus:ring-0 placeholder:text-gray-300"
                           />
                         </div>
 
                         {/* Holiday Status */}
-                        <div className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-3 ${editFormData.status_hari_raya === 1 ? 'bg-rose-50/50 border-rose-500' : 'bg-white border-gray-100 opacity-60'}`} onClick={() => setEditFormData({...editFormData, status_hari_raya: editFormData.status_hari_raya === 1 ? 0 : 1})}>
+                        <div className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-3 ${editFormData.status_hari_raya === 1 ? 'bg-rose-50/50 border-rose-500' : 'bg-white border-gray-100 opacity-60'}`} onClick={() => setEditFormData({ ...editFormData, status_hari_raya: editFormData.status_hari_raya === 1 ? 0 : 1 })}>
                           <div className="flex items-center justify-between">
                             <span className="text-[9px] font-black uppercase tracking-widest">Hari Raya</span>
                             <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${editFormData.status_hari_raya === 1 ? 'bg-rose-600 border-rose-600 text-white' : 'border-gray-300'}`}>
@@ -788,7 +788,7 @@ export default function ApproveDriver() {
                           <span className="text-xs font-bold text-gray-900">Public Holiday</span>
                         </div>
 
-                        <div className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-3 ${editFormData.status_hari_libur === 1 ? 'bg-indigo-50/50 border-indigo-500' : 'bg-white border-gray-100 opacity-60'}`} onClick={() => setEditFormData({...editFormData, status_hari_libur: editFormData.status_hari_libur === 1 ? 0 : 1})}>
+                        <div className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-3 ${editFormData.status_hari_libur === 1 ? 'bg-indigo-50/50 border-indigo-500' : 'bg-white border-gray-100 opacity-60'}`} onClick={() => setEditFormData({ ...editFormData, status_hari_libur: editFormData.status_hari_libur === 1 ? 0 : 1 })}>
                           <div className="flex items-center justify-between">
                             <span className="text-[9px] font-black uppercase tracking-widest">Hari Libur</span>
                             <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${editFormData.status_hari_libur === 1 ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300'}`}>
@@ -807,8 +807,8 @@ export default function ApproveDriver() {
                       <div className="p-8 bg-indigo-50/30 border border-indigo-100/50 rounded-[32px] space-y-8">
                         <div className="space-y-1.5">
                           <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Date Timesheet</label>
-                          <input 
-                            type="date" 
+                          <input
+                            type="date"
                             required
                             value={(() => {
                               if (!editFormData.date_timesheets) return '';
@@ -824,16 +824,16 @@ export default function ApproveDriver() {
                               const newDate = new Date(dateStr);
                               const isUnix = /^\d+$/.test(editFormData.date_timesheets || '');
                               const newValue = isUnix ? String(Math.floor(newDate.getTime() / 1000)) : dateStr;
-                              
+
                               let updated = { ...editFormData, date_timesheets: newValue };
-                              
+
                               if (updated.time_entry?.includes(' ')) {
                                 updated.time_entry = `${dateStr} ${updated.time_entry.split(' ')[1]}`;
                               }
                               if (updated.time_exit?.includes(' ')) {
                                 updated.time_exit = `${dateStr} ${updated.time_exit.split(' ')[1]}`;
                               }
-                              
+
                               setEditFormData(updated);
                             }}
                             className="w-full px-5 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-100 outline-none transition-all shadow-sm"
@@ -848,7 +848,7 @@ export default function ApproveDriver() {
                             <button
                               type="button"
                               onClick={() => {
-                                setEditFormData({...editFormData, time_entry: selectedTimesheet?.time_entry, time_exit: selectedTimesheet?.time_exit});
+                                setEditFormData({ ...editFormData, time_entry: selectedTimesheet?.time_entry, time_exit: selectedTimesheet?.time_exit });
                               }}
                               className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${!editFormData.time_entry?.includes('07:30') ? 'bg-white shadow-sm text-indigo-600 ring-1 ring-indigo-100' : 'text-gray-400 hover:text-gray-600'}`}
                             >
@@ -863,14 +863,14 @@ export default function ApproveDriver() {
                                   const parts = currentEntry.split(' ');
                                   if (parts[0].includes('-')) {
                                     // It's a date prefix, keep it
-                                    setEditFormData({...editFormData, time_entry: `${parts[0]} 07:30:00`});
+                                    setEditFormData({ ...editFormData, time_entry: `${parts[0]} 07:30:00` });
                                   } else {
                                     // It was likely corrupted (e.g., "06:32 07:30:00"), reset to just time
-                                    setEditFormData({...editFormData, time_entry: '07:30'});
+                                    setEditFormData({ ...editFormData, time_entry: '07:30' });
                                   }
                                 } else {
                                   // Just time, override it
-                                  setEditFormData({...editFormData, time_entry: '07:30'});
+                                  setEditFormData({ ...editFormData, time_entry: '07:30' });
                                 }
                               }}
                               className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${editFormData.time_entry?.includes('07:30') ? 'bg-indigo-600 shadow-md text-white' : 'text-gray-400 hover:text-gray-600'}`}
@@ -887,21 +887,21 @@ export default function ApproveDriver() {
                           <div className="space-y-4">
                             <div className="space-y-1.5">
                               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Check-In Time</label>
-                              <input 
-                                type="time" 
+                              <input
+                                type="time"
                                 value={getTimeValue(editFormData.time_entry)}
                                 onChange={e => {
-                                  setEditFormData({...editFormData, time_entry: updateTimeValue(editFormData.time_entry, e.target.value)});
+                                  setEditFormData({ ...editFormData, time_entry: updateTimeValue(editFormData.time_entry, e.target.value) });
                                 }}
                                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-100 outline-none"
                               />
                             </div>
                             <div className="space-y-1.5">
                               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Entry KM</label>
-                              <input 
-                                type="text" 
+                              <input
+                                type="text"
                                 value={editFormData.km_entry || ''}
-                                onChange={e => setEditFormData({...editFormData, km_entry: e.target.value})}
+                                onChange={e => setEditFormData({ ...editFormData, km_entry: e.target.value })}
                                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-100 outline-none"
                               />
                             </div>
@@ -909,21 +909,21 @@ export default function ApproveDriver() {
                           <div className="space-y-4">
                             <div className="space-y-1.5">
                               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Check-Out Time</label>
-                              <input 
-                                type="time" 
+                              <input
+                                type="time"
                                 value={getTimeValue(editFormData.time_exit)}
                                 onChange={e => {
-                                  setEditFormData({...editFormData, time_exit: updateTimeValue(editFormData.time_exit, e.target.value)});
+                                  setEditFormData({ ...editFormData, time_exit: updateTimeValue(editFormData.time_exit, e.target.value) });
                                 }}
                                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-100 outline-none"
                               />
                             </div>
                             <div className="space-y-1.5">
                               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Exit KM</label>
-                              <input 
-                                type="text" 
+                              <input
+                                type="text"
                                 value={editFormData.km_exit || ''}
-                                onChange={e => setEditFormData({...editFormData, km_exit: e.target.value})}
+                                onChange={e => setEditFormData({ ...editFormData, km_exit: e.target.value })}
                                 className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-100 outline-none"
                               />
                             </div>
@@ -932,10 +932,10 @@ export default function ApproveDriver() {
 
                         <div className="space-y-1.5 pt-6 border-t border-indigo-100">
                           <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Penugasan</label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             value={editFormData.penugasan || ''}
-                            onChange={e => setEditFormData({...editFormData, penugasan: e.target.value})}
+                            onChange={e => setEditFormData({ ...editFormData, penugasan: e.target.value })}
                             className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-100 outline-none"
                           />
                         </div>
@@ -1057,12 +1057,12 @@ export default function ApproveDriver() {
                               Lat: {ts.lokasi_timesheets[0].lat_masuk} | Long: {ts.lokasi_timesheets[0].long_masuk}
                             </p>
                           </div>
-                          
+
                           <div className="w-full h-64 rounded-[40px] overflow-hidden border-2 border-indigo-50 shadow-lg bg-gray-50 group relative">
-                            <iframe 
-                              width="100%" 
-                              height="100%" 
-                              frameBorder="0" 
+                            <iframe
+                              width="100%"
+                              height="100%"
+                              frameBorder="0"
                               style={{ border: 0 }}
                               src={`https://maps.google.com/maps?q=${ts.lokasi_timesheets[0].lat_masuk},${ts.lokasi_timesheets[0].long_masuk}&z=18&output=embed`}
                               allowFullScreen
@@ -1083,12 +1083,12 @@ export default function ApproveDriver() {
                                 Lat: {ts.lokasi_timesheets[0].lat_keluar} | Long: {ts.lokasi_timesheets[0].long_keluar}
                               </p>
                             </div>
-                            
+
                             <div className="w-full h-64 rounded-[40px] overflow-hidden border-2 border-indigo-50 shadow-lg bg-gray-50 group relative">
-                              <iframe 
-                                width="100%" 
-                                height="100%" 
-                                frameBorder="0" 
+                              <iframe
+                                width="100%"
+                                height="100%"
+                                frameBorder="0"
                                 style={{ border: 0 }}
                                 src={`https://maps.google.com/maps?q=${ts.lokasi_timesheets[0].lat_keluar},${ts.lokasi_timesheets[0].long_keluar}&z=18&output=embed`}
                                 allowFullScreen
@@ -1115,10 +1115,10 @@ export default function ApproveDriver() {
                               Bukti Odometer Masuk
                             </div>
                             <div className="group relative overflow-hidden rounded-[32px] border-2 border-gray-100 bg-gray-50 shadow-sm transition-all hover:shadow-xl hover:border-blue-200 cursor-zoom-in">
-                              <img 
-                                src={ts.foto_timesheets[0].foto_km_in} 
-                                alt="KM Entry" 
-                                className="w-full h-72 object-cover transition-transform duration-700 group-hover:scale-110" 
+                              <img
+                                src={ts.foto_timesheets[0].foto_km_in}
+                                alt="KM Entry"
+                                className="w-full h-72 object-cover transition-transform duration-700 group-hover:scale-110"
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
@@ -1131,10 +1131,10 @@ export default function ApproveDriver() {
                               Bukti Odometer Keluar
                             </div>
                             <div className="group relative overflow-hidden rounded-[32px] border-2 border-gray-100 bg-gray-50 shadow-sm transition-all hover:shadow-xl hover:border-blue-200 cursor-zoom-in">
-                              <img 
-                                src={ts.foto_timesheets[0].foto_km_out} 
-                                alt="KM Exit" 
-                                className="w-full h-72 object-cover transition-transform duration-700 group-hover:scale-110" 
+                              <img
+                                src={ts.foto_timesheets[0].foto_km_out}
+                                alt="KM Exit"
+                                className="w-full h-72 object-cover transition-transform duration-700 group-hover:scale-110"
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
@@ -1153,7 +1153,7 @@ export default function ApproveDriver() {
                 <Clock size={12} /> Last updated: {new Date().toLocaleTimeString()}
               </span>
               <div className="flex gap-3">
-                <button 
+                <button
                   onClick={() => {
                     setSelectedTimesheet(null);
                     setIsEditing(false);
@@ -1163,7 +1163,7 @@ export default function ApproveDriver() {
                   Tutup
                 </button>
                 {isEditing ? (
-                  <button 
+                  <button
                     form="edit-timesheet-form"
                     type="submit"
                     className="px-6 py-2.5 rounded-xl font-bold text-sm bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-200 transition-all"
@@ -1184,7 +1184,7 @@ export default function ApproveDriver() {
                     >
                       <History size={16} /> Revisi
                     </button> */}
-                    <button 
+                    <button
                       onClick={() => handleApprove(ts.id_timesheets_mitra, 1)}
                       className="px-6 py-2.5 rounded-xl font-bold text-sm bg-[#1a1f2e] text-white hover:bg-blue-600 transition-all flex items-center gap-2 shadow-lg"
                     >
@@ -1192,7 +1192,7 @@ export default function ApproveDriver() {
                     </button>
                   </>
                 ) : (ts.approved_timesheets[0]?.status_approve ?? 0) === 1 ? (
-                  <button 
+                  <button
                     onClick={() => handleApprove(ts.id_timesheets_mitra, 0)}
                     className="px-6 py-2.5 rounded-xl font-bold text-sm text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all flex items-center gap-2 shadow-md hover:shadow-lg active:scale-95"
                   >
@@ -1224,15 +1224,15 @@ export default function ApproveDriver() {
       <AnimatePresence>
         {showRatingModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowRatingModal(false)}
               className="absolute inset-0 bg-[#0a0a0b]/80 backdrop-blur-xl"
             />
-            
-            <motion.div 
+
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -1260,7 +1260,7 @@ export default function ApproveDriver() {
                     </div>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setShowRatingModal(false)}
                   className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-100 text-gray-400 hover:bg-rose-50 hover:text-rose-500 transition-all"
                 >
@@ -1290,7 +1290,7 @@ export default function ApproveDriver() {
                               <div className="text-[8px] font-black text-amber-600/50 uppercase tracking-tighter mt-1">Avg Score</div>
                             </div>
                           </div>
-                          
+
                           <div className="text-left w-full">
                             <div className="text-sm font-black text-gray-900 group-hover/item:text-amber-700 transition-colors">{rate.passenger_name}</div>
                             <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1.5 flex items-center gap-2">
@@ -1299,7 +1299,7 @@ export default function ApproveDriver() {
                               {new Date(rate.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
                           </div>
-                          
+
                           <div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between w-full">
                             <span className="text-[8px] font-black text-gray-300 uppercase tracking-[0.2em]">View Details</span>
                             <ChevronRight size={14} className="text-gray-300 group-hover/item:text-amber-500 group-hover/item:translate-x-1 transition-all" />
@@ -1308,7 +1308,7 @@ export default function ApproveDriver() {
                       ))}
                     </div>
                   </div>
-                ) : ( 
+                ) : (
                   /* Detail View */
                   <div className="space-y-6">
                     <div className="grid grid-cols-2 gap-4">
@@ -1329,7 +1329,7 @@ export default function ApproveDriver() {
                         <p className="text-sm font-bold text-gray-700 leading-relaxed italic">"{selectedRating.q10_comment}"</p>
                       </div>
                     )}
-                    
+
                     {/* <div className="flex items-center justify-between pt-2">
                       <div className="flex items-center gap-2">
                         <div className={`h-2.5 w-2.5 rounded-full ${selectedRating.is_bonus_qualified ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`} />
@@ -1346,14 +1346,14 @@ export default function ApproveDriver() {
               {/* Footer */}
               <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-between gap-4">
                 {selectedRating && ratingList.length > 1 && (
-                  <button 
+                  <button
                     onClick={() => setSelectedRating(null)}
                     className="px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm hover:bg-gray-50 transition-all flex items-center gap-2"
                   >
                     <ChevronLeft size={16} /> Back to List
                   </button>
                 )}
-                <button 
+                <button
                   onClick={() => setShowRatingModal(false)}
                   className="ml-auto px-8 py-3 bg-[#1a1f2e] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-blue-600 transition-all active:scale-95"
                 >
@@ -1368,7 +1368,7 @@ export default function ApproveDriver() {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
@@ -1388,22 +1388,20 @@ export default function ApproveDriver() {
         <div className="flex items-center p-1.5 bg-white border border-gray-200 rounded-[24px] shadow-sm">
           <button
             onClick={() => { setStatusFilter('pending'); setCurrentPage(1); }}
-            className={`px-6 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
-              statusFilter === 'pending' 
-                ? 'bg-[#1a1f2e] text-white shadow-lg' 
+            className={`px-6 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${statusFilter === 'pending'
+                ? 'bg-[#1a1f2e] text-white shadow-lg'
                 : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'
-            }`}
+              }`}
           >
             <Clock size={14} />
             Waiting Approval
           </button>
           <button
             onClick={() => { setStatusFilter('approved'); setCurrentPage(1); }}
-            className={`px-6 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
-              statusFilter === 'approved' 
-                ? 'bg-[#1a1f2e] text-white shadow-lg' 
+            className={`px-6 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${statusFilter === 'approved'
+                ? 'bg-[#1a1f2e] text-white shadow-lg'
                 : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'
-            }`}
+              }`}
           >
             <CheckCircle size={14} />
             Approved History
@@ -1414,7 +1412,7 @@ export default function ApproveDriver() {
       {/* Overview Statistics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Total Logs */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.4 }}
@@ -1433,7 +1431,7 @@ export default function ApproveDriver() {
         </motion.div>
 
         {/* Pending Approval */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15, duration: 0.4 }}
@@ -1455,7 +1453,7 @@ export default function ApproveDriver() {
         </motion.div>
 
         {/* Total Distance */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.4 }}
@@ -1478,7 +1476,7 @@ export default function ApproveDriver() {
         </motion.div>
 
         {/* Average Rating */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25, duration: 0.4 }}
@@ -1535,7 +1533,7 @@ export default function ApproveDriver() {
             <div className="flex items-center flex-wrap gap-4">
               <div className="flex items-center gap-2 pr-4 border-r border-gray-100">
                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Per Page</span>
-                <select 
+                <select
                   value={itemsPerPage}
                   onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
                   className="bg-gray-50 border-none text-xs font-bold rounded-lg px-2 py-1 focus:ring-0 cursor-pointer"
@@ -1546,7 +1544,7 @@ export default function ApproveDriver() {
                 </select>
               </div>
               <span className="text-sm font-bold text-gray-400 pr-4 border-r border-gray-100">Total: {filteredData.length} records</span>
-              
+
               {/* Excel Export Button */}
               <button
                 onClick={handleExportExcel}
@@ -1635,8 +1633,8 @@ export default function ApproveDriver() {
                   <th className="px-8 py-5">Date</th>
                   <th className="px-8 py-5">Driver Info</th>
                   <th className="px-8 py-5">Schedule & Jarak Tempuh</th>
-                  <th className="px-8 py-5">Premium</th>   
-                  <th className="px-8 py-5">VIP</th>   
+                  <th className="px-8 py-5">Premium</th>
+                  <th className="px-8 py-5">VIP</th>
                   <th className="px-8 py-5">Hari Raya</th>
                   <th className="px-8 py-5">Hari Libur</th>
                   <th className="px-8 py-5">Rating</th>
@@ -1645,7 +1643,7 @@ export default function ApproveDriver() {
               </thead>
               <tbody className="divide-y divide-gray-100 uppercase tracking-tight">
                 {paginatedData.length > 0 ? paginatedData.map((ts, index) => (
-                  <motion.tr 
+                  <motion.tr
                     key={ts.id_timesheets_mitra}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -1659,33 +1657,33 @@ export default function ApproveDriver() {
                       <span className="text-[13px] font-black text-gray-900 tracking-tight">{formatDate(ts.date_timesheets)}</span>
                     </td>
                     <td className="px-8 py-6 whitespace-nowrap">
-                       <div className="flex items-center gap-4">
-                         {/* <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100/50 flex items-center justify-center text-blue-600 font-bold text-xs group-hover:scale-110 transition-all duration-500">
+                      <div className="flex items-center gap-4">
+                        {/* <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100/50 flex items-center justify-center text-blue-600 font-bold text-xs group-hover:scale-110 transition-all duration-500">
                            {ts.employee_id.substring(0, 2)}
                          </div> */}
-                         <div>
-                           <div className="font-black text-gray-900 tracking-tight text-[15px]">{drivers.find(d => d.employee_id === ts.employee_id)?.full_name || 'Verified Transport Partner'}</div>
-                           <div className="text-[10px] text-blue-600 font-black uppercase tracking-widest mt-0.5">{ts.employee_id}</div>
-                         </div>
-                       </div>
+                        <div>
+                          <div className="font-black text-gray-900 tracking-tight text-[15px]">{drivers.find(d => d.employee_id === ts.employee_id)?.full_name || 'Verified Transport Partner'}</div>
+                          <div className="text-[10px] text-blue-600 font-black uppercase tracking-widest mt-0.5">{ts.employee_id}</div>
+                        </div>
+                      </div>
                     </td>
-                    
+
                     <td className="px-8 py-6 whitespace-nowrap">
                       <div className="flex items-center gap-6">
                         <div className="space-y-1">
-                           <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Check Entry</span>
-                           <div className="flex items-center gap-2">
-                             <span className="font-mono font-black text-gray-900 text-[14px]">{getDisplayTimeEntry(ts)}</span>
-                             <span className="text-[10px] font-black text-blue-600/60 bg-blue-50 px-1.5 py-0.5 rounded-lg border border-blue-100/50">{ts.km_entry ? Number(ts.km_entry).toLocaleString('en-US') : '0'} KM</span>
-                           </div>
+                          <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Check Entry</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-black text-gray-900 text-[14px]">{getDisplayTimeEntry(ts)}</span>
+                            <span className="text-[10px] font-black text-blue-600/60 bg-blue-50 px-1.5 py-0.5 rounded-lg border border-blue-100/50">{ts.km_entry ? Number(ts.km_entry).toLocaleString('en-US') : '0'} KM</span>
+                          </div>
                         </div>
                         <div className="h-10 w-px bg-gray-100" />
                         <div className="space-y-1">
-                           <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Check Exit</span>
-                           <div className="flex items-center gap-2">
-                             <span className="font-mono font-black text-gray-900 text-[14px]">{getDisplayTimeExit(ts)}</span>
-                             <span className="text-[10px] font-black text-indigo-600/60 bg-indigo-50 px-1.5 py-0.5 rounded-lg border border-indigo-100/50">{ts.km_exit ? Number(ts.km_exit).toLocaleString('en-US') : '0'} KM</span>
-                           </div>
+                          <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Check Exit</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-black text-gray-900 text-[14px]">{getDisplayTimeExit(ts)}</span>
+                            <span className="text-[10px] font-black text-indigo-600/60 bg-indigo-50 px-1.5 py-0.5 rounded-lg border border-indigo-100/50">{ts.km_exit ? Number(ts.km_exit).toLocaleString('en-US') : '0'} KM</span>
+                          </div>
                         </div>
                         <div className="h-10 w-px bg-gray-100" />
                         <div className="space-y-1">
@@ -1757,7 +1755,7 @@ export default function ApproveDriver() {
                     </td>
                     <td className="px-8 py-6 whitespace-nowrap">
                       {ts.user_ratings && ts.user_ratings.length > 0 ? (
-                        <button 
+                        <button
                           onClick={() => {
                             setRatingList(ts.user_ratings || []);
                             setSelectedRating(ts.user_ratings && ts.user_ratings.length === 1 ? ts.user_ratings[0] : null);
@@ -1769,7 +1767,7 @@ export default function ApproveDriver() {
                           LIHAT RATING
                           <span className="ml-auto flex items-center gap-1 bg-amber-100/50 px-2 py-1 rounded-lg border border-amber-200/50 shadow-inner">
                             <span className="text-[11px] font-black text-amber-700">
-                              {ts.user_ratings.length > 1 
+                              {ts.user_ratings.length > 1
                                 ? (ts.user_ratings.reduce((acc, curr) => acc + parseFloat(curr.average_score), 0) / ts.user_ratings.length).toFixed(2)
                                 : ts.user_ratings[0].average_score
                               }
@@ -1783,7 +1781,7 @@ export default function ApproveDriver() {
                     </td>
                     <td className="px-8 py-6 text-right whitespace-nowrap">
                       <div className="flex justify-end gap-2">
-                        <button 
+                        <button
                           onClick={() => handleShowExpenses(ts.employee_id, ts.date_timesheets)}
                           className="px-3 py-2 text-emerald-600 bg-emerald-50/50 hover:bg-emerald-100 rounded-xl transition-all shadow-sm border border-emerald-100 flex items-center gap-2 active:scale-95 group/exp"
                           title="Daily Expenses"
@@ -1791,7 +1789,7 @@ export default function ApproveDriver() {
                           <Banknote size={16} className="group-hover/exp:scale-110 transition-transform" />
                           <span className="text-[10px] font-black uppercase tracking-widest">Pengeluaran</span>
                         </button>
-                        <button 
+                        <button
                           onClick={() => {
                             const now = new Date();
                             const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -1803,7 +1801,7 @@ export default function ApproveDriver() {
                           <FileText size={16} className="group-hover/ts:scale-110 transition-transform" />
                           <span className="text-[10px] font-black uppercase tracking-widest">Timesheet</span>
                         </button>
-                        <button 
+                        <button
                           onClick={() => setSelectedTimesheet(ts)}
                           className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-white rounded-xl transition-all shadow-sm ring-1 ring-transparent hover:ring-blue-100"
                           title="View Details"
@@ -1811,7 +1809,7 @@ export default function ApproveDriver() {
                           <Eye size={18} />
                         </button>
                         {(ts.approved_timesheets[0]?.status_approve ?? 0) !== 1 && (
-                          <button 
+                          <button
                             onClick={() => handleEditClick(ts)}
                             className="p-2.5 text-gray-400 hover:text-indigo-600 hover:bg-white rounded-xl transition-all shadow-sm ring-1 ring-transparent hover:ring-indigo-100"
                             title="Edit Record"
@@ -1820,41 +1818,40 @@ export default function ApproveDriver() {
                           </button>
                         )}
                         {(ts.approved_timesheets[0]?.status_approve ?? 0) === 0 ? (
-                           <div className="flex items-center gap-1.5 ml-2 border-l border-gray-100 pl-3">
-                             <button 
-                               disabled={!ts.time_exit || ts.time_exit === '-'}
-                               onClick={() => handleApprove(ts.id_timesheets_mitra, 1)}
-                               className={`h-10 w-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
-                                 (!ts.time_exit || ts.time_exit === '-') 
-                                 ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                 : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100'
-                               }`}
-                               title={(!ts.time_exit || ts.time_exit === '-') ? "Missing Exit Time" : "Approve Now"}
-                             >
-                               <CheckCircle size={18} />
-                             </button>
-                           </div>
+                          <div className="flex items-center gap-1.5 ml-2 border-l border-gray-100 pl-3">
+                            <button
+                              disabled={!ts.time_exit || ts.time_exit === '-'}
+                              onClick={() => handleApprove(ts.id_timesheets_mitra, 1)}
+                              className={`h-10 w-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${(!ts.time_exit || ts.time_exit === '-')
+                                  ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                                  : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100'
+                                }`}
+                              title={(!ts.time_exit || ts.time_exit === '-') ? "Missing Exit Time" : "Approve Now"}
+                            >
+                              <CheckCircle size={18} />
+                            </button>
+                          </div>
                         ) : (
-                           <div className="flex items-center gap-1.5 ml-2 border-l border-gray-100 pl-3">
-                             <div className="h-10 px-3 flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl">
-                               {(ts.approved_timesheets[0]?.status_approve ?? 0) === 1 ? (
-                                 <CheckCircle size={14} className="text-emerald-500" />
-                               ) : (
-                                 <XCircle size={14} className="text-rose-500" />
-                               )}
-                               <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Finalized</span>
-                             </div>
-                             {(ts.approved_timesheets[0]?.status_approve ?? 0) === 1 && (
-                               <button 
-                                 onClick={() => handleApprove(ts.id_timesheets_mitra, 0)}
-                                 className="h-10 px-3 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/50 rounded-xl transition-all active:scale-95 flex items-center gap-1.5 shadow-sm group/cancel"
-                                 title="Batal Approve"
-                               >
-                                 <XCircle size={14} className="group-hover/cancel:rotate-12 transition-transform" />
-                                 <span className="text-[10px] font-black uppercase tracking-widest">Batal Approve</span>
-                               </button>
-                             )}
-                           </div>
+                          <div className="flex items-center gap-1.5 ml-2 border-l border-gray-100 pl-3">
+                            <div className="h-10 px-3 flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl">
+                              {(ts.approved_timesheets[0]?.status_approve ?? 0) === 1 ? (
+                                <CheckCircle size={14} className="text-emerald-500" />
+                              ) : (
+                                <XCircle size={14} className="text-rose-500" />
+                              )}
+                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Finalized</span>
+                            </div>
+                            {(ts.approved_timesheets[0]?.status_approve ?? 0) === 1 && (
+                              <button
+                                onClick={() => handleApprove(ts.id_timesheets_mitra, 0)}
+                                className="h-10 px-3 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/50 rounded-xl transition-all active:scale-95 flex items-center gap-1.5 shadow-sm group/cancel"
+                                title="Batal Approve"
+                              >
+                                <XCircle size={14} className="group-hover/cancel:rotate-12 transition-transform" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">Batal Approve</span>
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </td>
@@ -1867,8 +1864,8 @@ export default function ApproveDriver() {
                           <Filter size={32} />
                         </div>
                         <div className="max-w-xs">
-                           <p className="font-black text-gray-900 uppercase tracking-widest text-[13px]">No Active Matches</p>
-                           <p className="text-xs font-medium text-gray-400 mt-1">Adjust your filters or search query to find relevant timesheet logs.</p>
+                          <p className="font-black text-gray-900 uppercase tracking-widest text-[13px]">No Active Matches</p>
+                          <p className="text-xs font-medium text-gray-400 mt-1">Adjust your filters or search query to find relevant timesheet logs.</p>
                         </div>
                       </div>
                     </td>
@@ -1879,7 +1876,7 @@ export default function ApproveDriver() {
           </div>
 
           <div className="px-8 py-5 border-t border-gray-100 flex items-center justify-between bg-white text-sm">
-            <button 
+            <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="px-4 py-2 border border-gray-100 rounded-xl font-bold font-sans text-[13px] text-gray-500 hover:bg-gray-50 disabled:opacity-30 flex items-center gap-2 transition-all shadow-sm uppercase tracking-widest"
@@ -1897,7 +1894,7 @@ export default function ApproveDriver() {
                 </button>
               ))}
             </div>
-            <button 
+            <button
               onClick={() => setCurrentPage(p => Math.min(totalPages || 1, p + 1))}
               disabled={currentPage === totalPages || totalPages === 0}
               className="px-4 py-2 border border-gray-100 rounded-xl font-bold font-sans text-[13px] text-gray-500 hover:bg-gray-50 disabled:opacity-30 flex items-center gap-2 transition-all shadow-sm uppercase tracking-widest"
@@ -1953,11 +1950,11 @@ export default function ApproveDriver() {
                     <div className="hidden md:flex flex-col items-end pr-6 border-r border-gray-200">
                       <span className="text-[8px] font-black text-amber-600 uppercase tracking-[0.2em] mb-0.5">Total Accumulation</span>
                       <span className="text-xl font-black text-gray-900 tracking-tighter">
-                         Rp {expenses.reduce((sum, exp) => sum + (exp.expenses_value || 0), 0).toLocaleString('id-ID')}
+                        Rp {expenses.reduce((sum, exp) => sum + (exp.expenses_value || 0), 0).toLocaleString('id-ID')}
                       </span>
                     </div>
                   )}
-                  <button 
+                  <button
                     onClick={() => setShowExpensesModal(false)}
                     className="h-10 w-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-white hover:shadow-sm rounded-xl transition-all border border-transparent hover:border-gray-200"
                   >
@@ -1985,43 +1982,43 @@ export default function ApproveDriver() {
                     {expenses.map((exp, i) => (
                       <div key={exp.id} className="p-6 bg-gray-50/50 border border-gray-100 rounded-[2rem] flex items-center gap-8 group hover:border-amber-200 hover:bg-white transition-all shadow-sm">
                         {/* Col 1: Photo */}
-                        <div 
+                        <div
                           onClick={() => exp.expenses_photo_cloud && setSelectedReceipt(exp.expenses_photo_cloud)}
                           className="h-20 w-20 rounded-[24px] bg-white border border-gray-200 overflow-hidden shadow-sm flex-shrink-0 cursor-zoom-in hover:scale-105 transition-transform active:scale-95"
                         >
-                           {exp.expenses_photo_cloud ? (
-                             <img src={exp.expenses_photo_cloud} alt="Receipt" className="h-full w-full object-cover" />
-                           ) : (
-                             <div className="h-full w-full flex items-center justify-center text-gray-300">
-                               <ReceiptText size={28} />
-                             </div>
-                           )}
+                          {exp.expenses_photo_cloud ? (
+                            <img src={exp.expenses_photo_cloud} alt="Receipt" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center text-gray-300">
+                              <ReceiptText size={28} />
+                            </div>
+                          )}
                         </div>
 
 
 
                         {/* Col 3: Description & Location */}
                         <div className="flex-1 min-w-0">
-                           <div className="text-[14px] font-black text-gray-900 uppercase tracking-tight mb-2 truncate">{exp.expenses_notes || 'General Expense'}</div>
-                           <div className="flex items-center gap-2.5 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">
-                             <div className="h-5 w-5 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-amber-50 group-hover:text-amber-600 transition-colors">
-                               <MapPin size={12} />
-                             </div>
-                             {exp.lokasi_expenses}
-                           </div>
+                          <div className="text-[14px] font-black text-gray-900 uppercase tracking-tight mb-2 truncate">{exp.expenses_notes || 'General Expense'}</div>
+                          <div className="flex items-center gap-2.5 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">
+                            <div className="h-5 w-5 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-amber-50 group-hover:text-amber-600 transition-colors">
+                              <MapPin size={12} />
+                            </div>
+                            {exp.lokasi_expenses}
+                          </div>
                         </div>
 
                         {/* Col 4: Type Column (DEDICATED) */}
                         <div className="w-40 flex-shrink-0 flex items-center justify-center">
-                           <div className="px-4 py-2 bg-blue-50/50 text-blue-600 text-[10px] font-black rounded-xl border border-blue-100 uppercase tracking-widest shadow-sm flex items-center gap-2">
-                             <div className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-                             {exp.type_pengeluaran}
-                           </div>
+                          <div className="px-4 py-2 bg-blue-50/50 text-blue-600 text-[10px] font-black rounded-xl border border-blue-100 uppercase tracking-widest shadow-sm flex items-center gap-2">
+                            <div className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                            {exp.type_pengeluaran}
+                          </div>
                         </div>
 
                         {/* Col 5: Value Column */}
                         <div className="text-right w-40 flex-shrink-0">
-                           <div className="text-[22px] font-black text-gray-900 tracking-tighter leading-none">Rp {exp.expenses_value?.toLocaleString('id-ID')}</div>
+                          <div className="text-[22px] font-black text-gray-900 tracking-tighter leading-none">Rp {exp.expenses_value?.toLocaleString('id-ID')}</div>
                         </div>
                       </div>
                     ))}
@@ -2036,7 +2033,7 @@ export default function ApproveDriver() {
               </div>
 
               <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-end">
-                <button 
+                <button
                   onClick={() => setShowExpensesModal(false)}
                   className="px-6 py-3 bg-gray-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg active:scale-95"
                 >
@@ -2065,7 +2062,7 @@ export default function ApproveDriver() {
               className="relative max-w-4xl w-full bg-white rounded-[2rem] overflow-hidden shadow-2xl"
             >
               <div className="absolute top-4 right-4 z-10">
-                <button 
+                <button
                   onClick={() => setSelectedReceipt(null)}
                   className="h-12 w-12 flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-xl text-white rounded-2xl transition-all border border-white/20 shadow-xl group"
                 >
@@ -2073,10 +2070,10 @@ export default function ApproveDriver() {
                 </button>
               </div>
               <div className="p-2 bg-white">
-                <img 
-                  src={selectedReceipt} 
-                  alt="Full Receipt" 
-                  className="w-full h-auto max-h-[80vh] object-contain rounded-2xl shadow-inner" 
+                <img
+                  src={selectedReceipt}
+                  alt="Full Receipt"
+                  className="w-full h-auto max-h-[80vh] object-contain rounded-2xl shadow-inner"
                 />
               </div>
               <div className="p-6 bg-gray-50 flex items-center justify-between border-t border-gray-100">
@@ -2089,7 +2086,7 @@ export default function ApproveDriver() {
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">High-Resolution Digital Log</p>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setSelectedReceipt(null)}
                   className="px-6 py-2 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-500 transition-all shadow-md active:scale-95"
                 >
