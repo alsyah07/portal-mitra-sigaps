@@ -452,7 +452,7 @@ export default function TimesheetCalculation() {
               <tr className="bg-gray-900 text-white font-black uppercase text-[10px] text-center">
                 <td colSpan={5} className="px-2 py-6">Summary Calculation</td>
                 <td className="px-2 py-6 opacity-40">-</td>
-                <td className="px-2 py-6 font-mono">{totals.totalEffective > 0 ? totals.totalEffective : '-'}</td>
+                <td className="px-2 py-6 font-mono">{totals.totalEffective > 0 ? Number(totals.totalEffective.toFixed(2)) : '-'}</td>
                 <td className="px-2 py-6 text-blue-400 font-mono">Rp {totals.insentif.toLocaleString()}</td>
                 <td className="px-2 py-6 font-mono">Rp {totals.premium.toLocaleString()}</td>
                 <td className="px-2 py-6 font-mono">Rp {totals.vip.toLocaleString()}</td>
