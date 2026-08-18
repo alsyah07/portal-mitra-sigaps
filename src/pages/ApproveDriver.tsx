@@ -1389,8 +1389,8 @@ export default function ApproveDriver() {
           <button
             onClick={() => { setStatusFilter('pending'); setCurrentPage(1); }}
             className={`px-6 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${statusFilter === 'pending'
-                ? 'bg-[#1a1f2e] text-white shadow-lg'
-                : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'
+              ? 'bg-[#1a1f2e] text-white shadow-lg'
+              : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'
               }`}
           >
             <Clock size={14} />
@@ -1399,8 +1399,8 @@ export default function ApproveDriver() {
           <button
             onClick={() => { setStatusFilter('approved'); setCurrentPage(1); }}
             className={`px-6 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${statusFilter === 'approved'
-                ? 'bg-[#1a1f2e] text-white shadow-lg'
-                : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'
+              ? 'bg-[#1a1f2e] text-white shadow-lg'
+              : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'
               }`}
           >
             <CheckCircle size={14} />
@@ -1541,6 +1541,8 @@ export default function ApproveDriver() {
                   <option value={10}>10</option>
                   <option value={25}>25</option>
                   <option value={50}>50</option>
+                  <option value={100}>100</option>
+                  <option value={200}>200</option>
                 </select>
               </div>
               <span className="text-sm font-bold text-gray-400 pr-4 border-r border-gray-100">Total: {filteredData.length} records</span>
@@ -1823,8 +1825,8 @@ export default function ApproveDriver() {
                               disabled={!ts.time_exit || ts.time_exit === '-'}
                               onClick={() => handleApprove(ts.id_timesheets_mitra, 1)}
                               className={`h-10 w-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${(!ts.time_exit || ts.time_exit === '-')
-                                  ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                                  : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100'
+                                ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                                : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100'
                                 }`}
                               title={(!ts.time_exit || ts.time_exit === '-') ? "Missing Exit Time" : "Approve Now"}
                             >
