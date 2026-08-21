@@ -23,7 +23,10 @@ import {
   Star,
   FileText,
   X,
-  FileSpreadsheet
+  FileSpreadsheet,
+  ChevronDown,
+  Search,
+  Check
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -39,6 +42,8 @@ export default function ApproveDriver() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('pending');
   const [driverFilter, setDriverFilter] = useState<string>('all');
+  const [isDriverDropdownOpen, setIsDriverDropdownOpen] = useState(false);
+  const [driverSearchQuery, setDriverSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [startDate, setStartDate] = useState('');
@@ -1585,22 +1590,83 @@ export default function ApproveDriver() {
                 </div>
               </div>
 
-              <div className="relative">
-                <select
-                  value={driverFilter}
-                  onChange={(e) => { setDriverFilter(e.target.value); setCurrentPage(1); }}
-                  className="appearance-none border border-gray-200 rounded-xl px-4 py-2 pr-10 text-sm bg-white hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer font-bold max-w-[200px]"
+              <div className="relative z-40">
+                <div
+                  onClick={() => setIsDriverDropdownOpen(!isDriverDropdownOpen)}
+                  className="flex items-center justify-between border border-gray-200 rounded-xl px-4 py-2 text-sm bg-white hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer font-bold min-w-[200px]"
                 >
-                  <option value="all">Driver: Semua</option>
-                  {drivers.map(driver => (
-                    <option key={driver.employee_id} value={driver.employee_id}>
-                      {driver.full_name}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                  <ChevronRight size={14} className="rotate-90" />
+                  <span className="truncate">
+                    {driverFilter === 'all' 
+                      ? 'Driver: Semua' 
+                      : drivers.find(d => d.employee_id === driverFilter)?.full_name || 'Driver: Semua'}
+                  </span>
+                  <ChevronDown size={14} className="text-gray-400 ml-2 shrink-0" />
                 </div>
+                
+                {isDriverDropdownOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-30"
+                      onClick={() => setIsDriverDropdownOpen(false)}
+                    />
+                    <div className="absolute top-full mt-2 w-full min-w-[250px] bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col max-h-[300px] right-0 sm:right-auto">
+                      <div className="p-2 border-b border-gray-100 shrink-0">
+                        <div className="relative">
+                          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                          <input
+                            type="text"
+                            placeholder="Cari driver..."
+                            value={driverSearchQuery}
+                            onChange={(e) => setDriverSearchQuery(e.target.value)}
+                            className="w-full pl-9 pr-3 py-1.5 text-sm bg-gray-50 border border-transparent rounded-lg focus:outline-none focus:bg-white focus:border-blue-200 focus:ring-2 focus:ring-blue-100 transition-all"
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+                      <div className="overflow-y-auto flex-1 p-1">
+                        <div
+                          onClick={() => {
+                            setDriverFilter('all');
+                            setCurrentPage(1);
+                            setIsDriverDropdownOpen(false);
+                            setDriverSearchQuery('');
+                          }}
+                          className={`flex items-center justify-between px-3 py-2.5 text-sm rounded-lg cursor-pointer transition-colors ${
+                            driverFilter === 'all' ? 'bg-blue-50 text-blue-600 font-bold' : 'hover:bg-gray-50 text-gray-700 font-medium'
+                          }`}
+                        >
+                          Driver: Semua
+                          {driverFilter === 'all' && <Check size={14} />}
+                        </div>
+                        {drivers
+                          .filter(driver => driver.full_name?.toLowerCase().includes(driverSearchQuery.toLowerCase()))
+                          .map(driver => (
+                            <div
+                              key={driver.employee_id}
+                              onClick={() => {
+                                setDriverFilter(driver.employee_id);
+                                setCurrentPage(1);
+                                setIsDriverDropdownOpen(false);
+                                setDriverSearchQuery('');
+                              }}
+                              className={`flex items-center justify-between px-3 py-2.5 text-sm rounded-lg cursor-pointer transition-colors ${
+                                driverFilter === driver.employee_id ? 'bg-blue-50 text-blue-600 font-bold' : 'hover:bg-gray-50 text-gray-700 font-medium'
+                              }`}
+                            >
+                              <span className="truncate pr-2">{driver.full_name}</span>
+                              {driverFilter === driver.employee_id && <Check size={14} className="shrink-0" />}
+                            </div>
+                          ))}
+                          
+                        {drivers.filter(driver => driver.full_name?.toLowerCase().includes(driverSearchQuery.toLowerCase())).length === 0 && (
+                          <div className="px-3 py-4 text-center text-sm text-gray-400 font-medium">
+                            Driver tidak ditemukan
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
