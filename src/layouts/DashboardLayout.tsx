@@ -105,6 +105,7 @@ export default function DashboardLayout() {
                 { path: '/dashboard/approve',   icon: Users,          label: 'Approval Center' },
                 { path: '/dashboard/driver',    icon: UserSquare2,    label: 'Driver Database' },
                 { path: '/dashboard/timesheets', icon: Calendar,      label: 'Timesheets' },
+                { path: '/dashboard/timesheets/integrated', icon: Calendar, label: 'Add Integrated Timesheet', role: 'superadmin' },
                 { path: '/dashboard/audit-operasional', icon: Database, label: 'Audit Trail', role: 'audit' },
                 { path: '/dashboard/backups', icon: RotateCcw, label: 'Backup Rollback', role: 'audit' },
                 { path: '/dashboard/users',     icon: Users,          label: 'User Management', role: 'superadmin' },
@@ -117,7 +118,7 @@ export default function DashboardLayout() {
 
                 // Superadmin ONLY sees User Management and Backups
                 if (isSuperAdmin) {
-                  return item.label === 'User Management' || item.label === 'Backup Rollback';
+                  return item.label === 'User Management' || item.label === 'Backup Rollback' || item.label === 'Add Integrated Timesheet';
                 }
                 
                 // Audit role ONLY sees Audit Trail

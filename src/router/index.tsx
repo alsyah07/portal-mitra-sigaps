@@ -8,6 +8,7 @@ import ApproveDriver from '../pages/ApproveDriver';
 import UserManagement from '../pages/UserManagement';
 import DriverTimesheets from '../pages/DriverTimesheets';
 import TimesheetCalculation from '../pages/TimesheetCalculation';
+import IntegratedTimesheetForm from '../pages/IntegratedTimesheetForm';
 import AuditOperasional from '../pages/AuditOperasional';
 import BackupManagement from '../pages/BackupManagement';
 
@@ -25,6 +26,7 @@ export default function AppRouter() {
           <Route path="approve" element={<ApproveDriver />} />
           <Route path="driver" element={<DriverDatabase />} />
           <Route path="timesheets" element={<DriverTimesheets />} />
+          <Route path="timesheets/integrated" element={<IntegratedTimesheetForm />} />
           <Route path="timesheets/calculation/:employeeId" element={<TimesheetCalculation />} />
           <Route path="audit-operasional" element={<AuditOperasional />} />
           <Route path="backups" element={<BackupManagement />} />
