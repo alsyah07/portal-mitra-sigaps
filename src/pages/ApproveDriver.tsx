@@ -1029,14 +1029,15 @@ export default function ApproveDriver() {
                         </div>
                       </div>
 
-                      <div className="pt-8 border-t border-gray-200/60">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Daily Insentif</p>
-                        <div className="flex flex-wrap gap-3">
-                          {ts.is_premium === 1 && (
-                            <span className="px-4 py-2 bg-blue-50 text-blue-700 text-[11px] font-bold rounded-xl border border-blue-100 flex items-center gap-2 shadow-sm">
-                              <CheckCircle size={14} className="text-blue-500" /> Premium {(ts.premium_name && ts.premium_name !== 'null') ? `(${ts.premium_name})` : ''}
-                            </span>
-                          )}
+                      <div className="grid grid-cols-2 gap-8 pt-8 border-t border-gray-200/60">
+                        <div>
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Daily Insentif</p>
+                          <div className="flex flex-wrap gap-3">
+                            {ts.is_premium === 1 && (
+                              <span className="px-4 py-2 bg-blue-50 text-blue-700 text-[11px] font-bold rounded-xl border border-blue-100 flex items-center gap-2 shadow-sm">
+                                <CheckCircle size={14} className="text-blue-500" /> Premium {(ts.premium_name && ts.premium_name !== 'null') ? `(${ts.premium_name})` : ''}
+                              </span>
+                            )}
                           {ts.is_vip === 1 && (
                             <span className="px-4 py-2 bg-amber-50 text-amber-700 text-[11px] font-bold rounded-xl border border-amber-100 flex items-center gap-2 shadow-sm">
                               <CheckCircle size={14} className="text-amber-500" /> VIP {(ts.vip_name && ts.vip_name !== 'null') ? `(${ts.vip_name})` : ''}
@@ -1057,6 +1058,11 @@ export default function ApproveDriver() {
                               Pengiriman Standar
                             </span>
                           )}
+                        </div>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Plat Nomor</p>
+                          <p className="font-mono text-sm font-black text-gray-700 bg-gray-100/50 px-4 py-2 rounded-xl border border-gray-200 inline-block tracking-tight">{modalPlateNumber}</p>
                         </div>
                       </div>
                     </div>
