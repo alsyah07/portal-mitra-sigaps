@@ -63,6 +63,59 @@ export default function ApproveDriver() {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingList, setRatingList] = useState<UserRating[]>([]);
   const [selectedRating, setSelectedRating] = useState<UserRating | null>(null);
+  
+  // Plate number state for modal
+  const [modalPlateNumber, setModalPlateNumber] = useState<string>('-');
+
+  // Fetch plate from expenses when modal opens
+  useEffect(() => {
+    if (selectedTimesheet) {
+      const fetchPlate = async () => {
+        try {
+          // 1. Try to fetch from users_driver table using id_timesheets
+          try {
+            const udRes = await fetch(`${import.meta.env.VITE_URL_API_DRIVER}users_driver_by_timesheet/${selectedTimesheet.id_timesheets_mitra}`);
+            const udJson = await udRes.json();
+            if (udJson.success && udJson.data && udJson.data.plat_nomor) {
+              setModalPlateNumber(udJson.data.plat_nomor);
+              return;
+            }
+          } catch (udErr) {
+            console.error('Failed to fetch from users_driver:', udErr);
+          }
+
+          // 2. Fallback to daily-expenses-date
+          const dateStr = selectedTimesheet.date_timesheets;
+          const isUnix = /^\d+$/.test(dateStr);
+          const dateObj = isUnix ? new Date(Number(dateStr) * 1000) : new Date(dateStr);
+          const formattedDate = dateObj.toISOString().split('T')[0];
+
+          const res = await fetch(`${import.meta.env.VITE_URL_API_DRIVER}daily-expenses-date/${selectedTimesheet.employee_id}/${formattedDate}`);
+          const json = await res.json();
+          if (json.success && json.data && json.data.length > 0) {
+            const plates = json.data.map((e: any) => e.plat_nomor_driver || e.plat_nomor_kendaraan || e.plat_nomor).filter(Boolean);
+            if (plates.length > 0) {
+              setModalPlateNumber(Array.from(new Set(plates)).join(', '));
+              return;
+            }
+          }
+          
+          // 3. Fallback to user_ratings
+          const ratingPlates = selectedTimesheet.user_ratings?.map(r => r.vehicle_plate).filter(Boolean) || [];
+          if (ratingPlates.length > 0) {
+            setModalPlateNumber(Array.from(new Set(ratingPlates)).join(', '));
+          } else {
+            setModalPlateNumber('-');
+          }
+        } catch (e) {
+          setModalPlateNumber('-');
+        }
+      };
+      fetchPlate();
+    } else {
+      setModalPlateNumber('-');
+    }
+  }, [selectedTimesheet]);
 
   const fetchTimesheets = async () => {
     if (!user) return;
@@ -692,7 +745,16 @@ export default function ApproveDriver() {
                 </div>
                 <div>
                   <h3 className="text-xl font-black text-gray-900 tracking-tight">{isEditing ? 'Edit Timesheet' : 'Detail Timesheet'}</h3>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-0.5">ID: {ts.id_timesheets_mitra} • {ts.employee_id}</p>
+                  <div className="flex flex-col gap-0.5 mt-1">
+                    <span className="text-[14px] font-black text-blue-600">
+                      {drivers.find(d => d.employee_id === ts.employee_id)?.full_name || 'Unknown Driver'}
+                    </span>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                      <span>ID: {ts.id_timesheets_mitra} • {ts.employee_id}</span>
+                      <span className="text-gray-300">•</span>
+                      <span>PLAT: {modalPlateNumber}</span>
+                    </p>
+                  </div>
                 </div>
               </div>
               <button
@@ -1013,7 +1075,7 @@ export default function ApproveDriver() {
                           <div>
                             <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Masuk</p>
                             <p className="font-mono text-xl font-black text-gray-900 tracking-tighter">{getDisplayTimeEntry(ts)}</p>
-                            <p className="text-[11px] font-bold text-gray-500 mt-0.5">{ts.date_timesheets || '-'}</p>
+                            <p className="text-[11px] font-bold text-gray-500 mt-0.5">{formatDate(ts.date_timesheets)}</p>
                           </div>
                           <div>
                             <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Odometer</p>
@@ -1024,7 +1086,7 @@ export default function ApproveDriver() {
                           <div>
                             <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Keluar</p>
                             <p className="font-mono text-xl font-black text-gray-900 tracking-tighter">{getDisplayTimeExit(ts)}</p>
-                            <p className="text-[11px] font-bold text-gray-500 mt-0.5">{ts.date_timesheets || '-'}</p>
+                            <p className="text-[11px] font-bold text-gray-500 mt-0.5">{formatDate(ts.date_timesheets)}</p>
                           </div>
                           <div>
                             <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Odometer</p>
@@ -1155,7 +1217,7 @@ export default function ApproveDriver() {
             {/* Modal Footer */}
             <div className="px-8 py-5 border-t border-gray-100 flex items-center justify-between bg-[#fcfcfa] shrink-0">
               <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                <Clock size={12} /> Last updated: {new Date().toLocaleTimeString()}
+                <Clock size={12} /> Last updated: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} {new Date().toLocaleTimeString()}
               </span>
               <div className="flex gap-3">
                 <button
