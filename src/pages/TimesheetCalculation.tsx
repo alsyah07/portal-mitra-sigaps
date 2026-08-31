@@ -292,6 +292,7 @@ export default function TimesheetCalculation() {
         isWeekend,
         penugasan: (isApproved && rawTimesheet) ? (rawTimesheet.penugasan || "") : "",
         isApproved,
+        hasTimesheet: !!rawTimesheet,
         rawDate: currentStr
       });
 
@@ -340,30 +341,49 @@ export default function TimesheetCalculation() {
   const handleSaveSettlement = async () => {
     if (!user || !employeeId) return;
 
-    // Check empty dates
-    const emptyDates = days.filter(d => d.in === '-' && d.out === '-');
-    if (emptyDates.length > 0) {
-      const datesTableRows = emptyDates.map((d, i) => `
+    // Check empty and unapproved dates
+    const problematicDates = days.filter(d => d.in === '-' || !d.isApproved);
+    if (problematicDates.length > 0) {
+      const datesTableRows = problematicDates.map((d, i) => {
+        let statusText = '';
+        let statusColor = '';
+        if (!d.hasTimesheet) {
+           statusText = 'Tidak Masuk / Kosong';
+           statusColor = 'text-rose-600 bg-rose-100';
+        } else if (!d.isApproved) {
+           statusText = 'Belum Approve';
+           statusColor = 'text-amber-600 bg-amber-100';
+        } else if (d.in === '-') {
+           statusText = 'Jam Kosong';
+           statusColor = 'text-rose-600 bg-rose-100';
+        }
+
+        return `
         <tr class="border-b border-gray-100 last:border-0 hover:bg-white transition-colors">
-          <td class="px-4 py-2.5 text-[11px] font-bold text-gray-400 w-12 text-center">${i + 1}</td>
-          <td class="px-4 py-2.5 text-xs font-bold text-gray-600 uppercase tracking-wider">${d.day}</td>
-          <td class="px-4 py-2.5 text-xs font-black text-gray-900">${d.date.replace(/-/g, ' ')}</td>
+          <td class="px-4 py-3 text-[11px] font-bold text-gray-400 w-12 text-center">${i + 1}</td>
+          <td class="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">${d.day}</td>
+          <td class="px-4 py-3 text-xs font-black text-gray-900">${d.date.replace(/-/g, ' ')}</td>
+          <td class="px-4 py-3 text-xs font-bold">
+            <span class="px-2.5 py-1 rounded-md ${statusColor}">${statusText}</span>
+          </td>
         </tr>
-      `).join('');
+      `}).join('');
 
       const result = await Swal.fire({
-        title: 'Tanggal Masih Kosong!',
+        title: 'Perhatian: Ada Data Belum Lengkap!',
+        width: '850px',
         html: `
           <p class="mb-5 text-[13px] font-medium text-gray-500">
-            Ditemukan <strong class="text-gray-900 font-black">${emptyDates.length}</strong> tanggal yang masih kosong. Yakin ingin mengabaikannya dan tetap memproses settlement?
+            Ditemukan <strong class="text-gray-900 font-black">${problematicDates.length}</strong> tanggal yang masih kosong atau belum di-approve. Yakin ingin mengabaikannya dan tetap memproses settlement?
           </p>
-          <div class="max-h-56 overflow-y-auto bg-gray-50/50 rounded-xl border border-gray-200 text-left">
+          <div class="max-h-72 overflow-y-auto bg-gray-50/50 rounded-xl border border-gray-200 text-left">
             <table class="w-full border-collapse">
-              <thead class="sticky top-0 bg-gray-100/80 backdrop-blur-sm z-10">
+              <thead class="sticky top-0 bg-gray-100/90 backdrop-blur-md z-10 shadow-sm">
                 <tr>
-                  <th class="px-4 py-2 text-[10px] font-black text-gray-500 uppercase tracking-widest border-b border-gray-200 text-center">No</th>
-                  <th class="px-4 py-2 text-[10px] font-black text-gray-500 uppercase tracking-widest border-b border-gray-200 text-left">Hari</th>
-                  <th class="px-4 py-2 text-[10px] font-black text-gray-500 uppercase tracking-widest border-b border-gray-200 text-left">Tanggal</th>
+                  <th class="px-4 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest border-b border-gray-200 text-center">No</th>
+                  <th class="px-4 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest border-b border-gray-200 text-left">Hari</th>
+                  <th class="px-4 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest border-b border-gray-200 text-left">Tanggal</th>
+                  <th class="px-4 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest border-b border-gray-200 text-left">Status</th>
                 </tr>
               </thead>
               <tbody>
