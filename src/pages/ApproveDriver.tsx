@@ -27,7 +27,8 @@ import {
   ChevronDown,
   Search,
   Check,
-  Download
+  Download,
+  RefreshCw
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -210,6 +211,7 @@ export default function ApproveDriver() {
 
   const fetchTimesheets = async () => {
     if (!user) return;
+    setLoading(true);
     console.log('URL : ', import.meta.env.VITE_URL_API + "datatimesheets/" + user.code_customer);
     try {
       const response = await fetch(`${import.meta.env.VITE_URL_API}datatimesheets/${user.code_customer}`, {
@@ -1800,6 +1802,16 @@ export default function ApproveDriver() {
               >
                 <FileSpreadsheet size={14} />
                 {isExporting ? 'Mengekspor...' : 'Export Excel'}
+              </button>
+              
+              {/* Reload Button */}
+              <button
+                onClick={fetchTimesheets}
+                disabled={loading}
+                className="flex items-center justify-center p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-all border border-indigo-100 active:scale-95 disabled:opacity-50"
+                title="Muat Ulang Data"
+              >
+                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
               </button>
             </div>
 

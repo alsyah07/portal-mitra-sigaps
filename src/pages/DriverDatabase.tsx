@@ -205,10 +205,15 @@ export default function DriverDatabase() {
                       >
                         <div className="h-12 w-12 rounded-2xl p-0.5 bg-gradient-to-tr from-blue-500 to-indigo-600 shadow-md group-hover/photo:shadow-blue-200">
                           <img
-                            src={driver.foto || `https://ui-avatars.com/api/?name=${driver.nama_lengkap}&background=fff&color=1e3a5f&bold=true&font-size=0.4`}
+                            src={driver.foto || `https://ui-avatars.com/api/?name=${driver.nama_lengkap}&background=1e3a5f&color=fff&bold=true&font-size=0.4`}
                             alt={driver.nama_lengkap}
                             className="w-full h-full rounded-[14px] object-cover bg-white"
                             referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.onerror = null;
+                              target.src = `https://ui-avatars.com/api/?name=${driver.nama_lengkap}&background=1e3a5f&color=fff&bold=true&font-size=0.4`;
+                            }}
                           />
                         </div>
                         <div className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-white" title="Active" />
@@ -335,6 +340,12 @@ export default function DriverDatabase() {
                       src={selectedDriver.foto || `https://ui-avatars.com/api/?name=${selectedDriver.nama_lengkap}&background=1e3a5f&color=fff&bold=true&font-size=0.4`}
                       alt={selectedDriver.nama_lengkap}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null;
+                        target.src = `https://ui-avatars.com/api/?name=${selectedDriver.nama_lengkap}&background=1e3a5f&color=fff&bold=true&font-size=0.4`;
+                      }}
                     />
                   </div>
                 </div>

@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
+import Swal from 'sweetalert2';
 import {
   ChevronLeft,
-  Download
+  Download,
+  RefreshCw,
+  Save,
+  RotateCcw,
+  CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Timesheet, Agreement, Driver } from '../types';
@@ -15,11 +20,15 @@ export default function TimesheetCalculation() {
   const { user, token } = useAuth();
 
   const period = searchParams.get('period') || new Date().toISOString().slice(0, 7); // YYYY-MM
+  const isCurrentPeriod = period === new Date().toISOString().slice(0, 7);
+
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [driverInfo, setDriverInfo] = useState<Driver | null>(null);
-  const [data, setData] = useState<{ timesheets: Timesheet[], agreement: Agreement | null }>({
+  const [data, setData] = useState<{ timesheets: Timesheet[], agreement: Agreement | null, salary_archive_mitra?: any[] }>({
     timesheets: [],
-    agreement: null
+    agreement: null,
+    salary_archive_mitra: []
   });
 
   const reportRef = React.useRef<HTMLDivElement>(null);
@@ -154,6 +163,14 @@ export default function TimesheetCalculation() {
     if (user && employeeId && token) fetchData();
   }, [employeeId, user, token]);
 
+  const isSettled = React.useMemo(() => {
+    if (!data.salary_archive_mitra) return false;
+    const [yearStr, monthStr] = period.split('-');
+    const year = parseInt(yearStr);
+    const month = parseInt(monthStr);
+    return data.salary_archive_mitra.some((s: any) => s.month === month && s.year === year);
+  }, [data.salary_archive_mitra, period]);
+
   const generateDays = () => {
     if (!period) return [];
     const { timesheets, agreement } = data;
@@ -274,7 +291,8 @@ export default function TimesheetCalculation() {
         performanceRate: performanceRate,
         isWeekend,
         penugasan: (isApproved && rawTimesheet) ? (rawTimesheet.penugasan || "") : "",
-        isApproved
+        isApproved,
+        rawDate: currentStr
       });
 
       current.setDate(current.getDate() + 1);
@@ -303,6 +321,202 @@ export default function TimesheetCalculation() {
 
   const avgPerformance = totals.perfCount > 0 ? (totals.totalPerf / totals.perfCount).toFixed(2) : '-';
 
+  const formatPeriodDates = () => {
+    if (!period) return '-';
+    const [year, month] = period.split('-').map(Number);
+    const cutOff = data.agreement?.cutOffDate;
+    let start, end;
+    if (cutOff && cutOff.includes('-')) {
+      const [startD, endD] = cutOff.split('-').map(Number);
+      start = new Date(year, month - 2, startD).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      end = new Date(year, month - 1, endD).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    } else {
+      start = new Date(year, month - 1, 1).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      end = new Date(year, month, 0).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    return `${start} - ${end}`;
+  };
+
+  const handleSaveSettlement = async () => {
+    if (!user || !employeeId) return;
+
+    // Check empty dates
+    const emptyDates = days.filter(d => d.in === '-' && d.out === '-');
+    if (emptyDates.length > 0) {
+      const datesTableRows = emptyDates.map((d, i) => `
+        <tr class="border-b border-gray-100 last:border-0 hover:bg-white transition-colors">
+          <td class="px-4 py-2.5 text-[11px] font-bold text-gray-400 w-12 text-center">${i + 1}</td>
+          <td class="px-4 py-2.5 text-xs font-bold text-gray-600 uppercase tracking-wider">${d.day}</td>
+          <td class="px-4 py-2.5 text-xs font-black text-gray-900">${d.date.replace(/-/g, ' ')}</td>
+        </tr>
+      `).join('');
+
+      const result = await Swal.fire({
+        title: 'Tanggal Masih Kosong!',
+        html: `
+          <p class="mb-5 text-[13px] font-medium text-gray-500">
+            Ditemukan <strong class="text-gray-900 font-black">${emptyDates.length}</strong> tanggal yang masih kosong. Yakin ingin mengabaikannya dan tetap memproses settlement?
+          </p>
+          <div class="max-h-56 overflow-y-auto bg-gray-50/50 rounded-xl border border-gray-200 text-left">
+            <table class="w-full border-collapse">
+              <thead class="sticky top-0 bg-gray-100/80 backdrop-blur-sm z-10">
+                <tr>
+                  <th class="px-4 py-2 text-[10px] font-black text-gray-500 uppercase tracking-widest border-b border-gray-200 text-center">No</th>
+                  <th class="px-4 py-2 text-[10px] font-black text-gray-500 uppercase tracking-widest border-b border-gray-200 text-left">Hari</th>
+                  <th class="px-4 py-2 text-[10px] font-black text-gray-500 uppercase tracking-widest border-b border-gray-200 text-left">Tanggal</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${datesTableRows}
+              </tbody>
+            </table>
+          </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Tetap Settlement',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#059669',
+        cancelButtonColor: '#94a3b8',
+        customClass: {
+          popup: 'rounded-[2rem]',
+          confirmButton: 'rounded-xl px-6 py-2.5 text-sm font-bold',
+          cancelButton: 'rounded-xl px-6 py-2.5 text-sm font-bold'
+        }
+      });
+
+      if (!result.isConfirmed) {
+        return; // User cancelled
+      }
+    }
+
+    setSaving(true);
+    try {
+      const [year, month] = period.split('-');
+      const payload = {
+        code_customer: user.code_customer,
+        employee_id: employeeId,
+        month: month,
+        year: year,
+        periode: formatPeriodDates(),
+        json_timesheets: days,
+        agreement: data.agreement,
+        avg_performance: avgPerformance,
+        custom_jumlah_komisi: 0,
+        custom_value_komisi: 0,
+        custom_nilai_kinerja: 0,
+        custom_value_nilai_kinerja: 0,
+        pinjaman: 0,
+        pengeluaran_lain_lain: 0
+      };
+
+      const res = await fetch(`${import.meta.env.VITE_URL_API}settlement`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const resultData = await res.json();
+      if (resultData.status === 'success') {
+        Swal.fire({
+          title: 'Berhasil!',
+          text: 'Settlement berhasil disimpan!',
+          icon: 'success',
+          confirmButtonColor: '#059669',
+          customClass: { popup: 'rounded-3xl' }
+        });
+        // Refetch to update settled status
+        const response = await fetch(`${import.meta.env.VITE_URL_API}timesheets-mitra-firebase/${employeeId}/${user?.code_customer}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const refetchData = await response.json();
+        if (refetchData.status === 'success') setData(refetchData.data);
+      } else {
+        Swal.fire({
+          title: 'Gagal!',
+          text: 'Gagal menyimpan: ' + resultData.message,
+          icon: 'error',
+          confirmButtonColor: '#dc2626',
+          customClass: { popup: 'rounded-3xl' }
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        title: 'Error!',
+        text: 'Terjadi kesalahan saat menyimpan settlement',
+        icon: 'error',
+        confirmButtonColor: '#dc2626',
+        customClass: { popup: 'rounded-3xl' }
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetSettlement = async () => {
+    Swal.fire({
+      title: 'Reset Settlement?',
+      text: 'Apakah Anda yakin ingin me-reset data settlement? Ini akan mengambil ulang data asli dari sistem.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Ya, Reset!',
+      cancelButtonText: 'Batal',
+      customClass: { popup: 'rounded-3xl' }
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        setLoading(true);
+        try {
+          const [year, month] = period.split('-');
+          await fetch(`${import.meta.env.VITE_URL_API}settlement/archive-old`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              code_customer: user?.code_customer,
+              employee_id: employeeId,
+              month: month,
+              year: year
+            })
+          });
+
+          // Refetch data
+          const response = await fetch(`${import.meta.env.VITE_URL_API}timesheets-mitra-firebase/${employeeId}/${user?.code_customer}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const refetchData = await response.json();
+          if (refetchData.status === 'success') setData(refetchData.data);
+
+          Swal.fire({
+            title: 'Berhasil!',
+            text: 'Data settlement berhasil di-reset.',
+            icon: 'success',
+            confirmButtonColor: '#059669',
+            customClass: { popup: 'rounded-3xl' }
+          });
+        } catch (err) {
+          console.error(err);
+          Swal.fire({
+            title: 'Gagal!',
+            text: 'Terjadi kesalahan saat mereset data.',
+            icon: 'error',
+            confirmButtonColor: '#dc2626',
+            customClass: { popup: 'rounded-3xl' }
+          });
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
+  };
+
   if (loading) return <div className="p-10 text-center font-black text-gray-400 animate-pulse">GENERATING CALCULATION ENGINE...</div>;
 
   return (
@@ -321,12 +535,33 @@ export default function TimesheetCalculation() {
           </div>
           Back to List
         </button>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 flex-wrap justify-end">
+
+          {isCurrentPeriod && (
+            <>
+              <button
+                onClick={handleSaveSettlement}
+                disabled={saving}
+                className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl text-[11px] font-black uppercase tracking-[0.1em] hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-200/50 active:scale-95 disabled:opacity-50 transition-all duration-300"
+              >
+                {saving ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
+                Simpan Settlement
+              </button>
+
+              <button
+                onClick={handleResetSettlement}
+                className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-white rounded-xl text-[11px] font-black uppercase tracking-[0.1em] hover:bg-amber-600 hover:shadow-lg hover:shadow-amber-200/50 active:scale-95 transition-all duration-300"
+              >
+                <RotateCcw size={14} /> Reset Settlement
+              </button>
+            </>
+          )}
+
           <button
             onClick={exportToPDF}
-            className="flex items-center gap-3 px-8 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#2c4a73] rounded-2xl text-xs font-black uppercase tracking-[0.15em] text-white hover:shadow-2xl hover:shadow-blue-200/50 hover:-translate-y-0.5 active:scale-95 transition-all duration-300"
+            className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl text-[11px] font-black uppercase tracking-[0.15em] hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-300/50 active:scale-95 transition-all duration-300"
           >
-            <Download size={16} /> Review PDF Report
+            <Download size={14} /> Review PDF Report
           </button>
         </div>
       </div>
@@ -339,6 +574,24 @@ export default function TimesheetCalculation() {
         ref={reportRef}
         className="bg-white border border-gray-100 rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] overflow-hidden"
       >
+        {isSettled && (
+          <div className="bg-emerald-50 border-b border-emerald-100 p-6 px-10 flex items-start sm:items-center gap-5 relative overflow-hidden">
+            <div className="absolute inset-0 bg-emerald-500/5 pattern-dots pointer-events-none" />
+            <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl relative z-10 shrink-0 shadow-sm shadow-emerald-200/50">
+              <CheckCircle2 size={28} className="animate-[pulse_2s_ease-in-out_infinite]" />
+            </div>
+            <div className="relative z-10 flex-1">
+              <h3 className="text-emerald-900 font-black text-sm uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                Status: Sudah Disettlement
+                <span className="px-2.5 py-0.5 bg-emerald-200 text-emerald-800 rounded-full text-[9px] tracking-widest font-bold">VERIFIED</span>
+              </h3>
+              <p className="text-emerald-700 text-[13px] font-medium leading-relaxed max-w-3xl">
+                Data perhitungan invoice dan timesheet untuk periode ini sudah <b>berhasil disimpan ke sistem</b>. Jika Anda perlu melakukan modifikasi atau perhitungan ulang, silakan klik tombol <b>Reset Settlement</b> di atas terlebih dahulu.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="p-10 border-b border-gray-100 bg-gradient-to-br from-gray-50/50 to-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-blue-50/30 rounded-full blur-3xl -mr-48 -mt-48 pointer-events-none" />
 
@@ -483,9 +736,16 @@ export default function TimesheetCalculation() {
         }}
       >
         <div className="p-10 bg-white">
-          <h2 className="text-3xl font-bold text-black uppercase mb-8 tracking-tighter">
-            Timesheet Calculation
-          </h2>
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-3xl font-bold text-black uppercase tracking-tighter">
+              Timesheet Calculation
+            </h2>
+            {isSettled && (
+              <span className="px-4 py-2 bg-black text-white font-black text-xs uppercase tracking-widest">
+                SETTLED
+              </span>
+            )}
+          </div>
 
           <div className="flex justify-between items-start mb-8">
             <div className="w-[900px]">
