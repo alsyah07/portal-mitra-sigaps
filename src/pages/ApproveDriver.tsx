@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Timesheet, UserRating } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import Swal from 'sweetalert2';
@@ -31,6 +31,95 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+
+const CustomTimePicker = ({ value, onChange, placeholder = "--.--" }: { value: string | null, onChange: (val: string) => void, placeholder?: string }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  
+  // parse value
+  let initialHour = '';
+  let initialMinute = '';
+  if (value && value.includes(':')) {
+    [initialHour, initialMinute] = value.split(':');
+  } else if (value && value.includes('.')) {
+    [initialHour, initialMinute] = value.split('.');
+  }
+
+  const [selectedHour, setSelectedHour] = useState(initialHour);
+  const [selectedMinute, setSelectedMinute] = useState(initialMinute);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleHourSelect = (h: string) => {
+    setSelectedHour(h);
+    if (selectedMinute) {
+      onChange(`${h}:${selectedMinute}`);
+    } else {
+      setSelectedMinute('00');
+      onChange(`${h}:00`);
+    }
+  };
+
+  const handleMinuteSelect = (m: string) => {
+    setSelectedMinute(m);
+    if (selectedHour) {
+      onChange(`${selectedHour}:${m}`);
+    } else {
+      setSelectedHour('00');
+      onChange(`00:${m}`);
+    }
+  };
+
+  const hours = Array.from({ length: 31 }, (_, i) => String(i).padStart(2, '0'));
+  const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+
+  return (
+    <div ref={wrapperRef} className="relative w-full">
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold cursor-pointer flex justify-between items-center hover:border-indigo-300 focus:ring-2 focus:ring-indigo-100 transition-all outline-none"
+      >
+        <span>{selectedHour && selectedMinute ? `${selectedHour}.${selectedMinute}` : placeholder}</span>
+        <Clock size={14} className="text-gray-400" />
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-[100] mt-1 bg-white border border-gray-200 rounded-xl shadow-xl flex gap-1 h-56 w-36 p-1 overflow-hidden" style={{ top: '100%', left: 0 }}>
+          <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] text-center border-r border-gray-100 pr-1">
+            {hours.map(h => (
+              <div 
+                key={`h-${h}`}
+                onClick={(e) => { e.stopPropagation(); handleHourSelect(h); }}
+                className={`py-2 text-sm font-bold cursor-pointer transition-all ${selectedHour === h ? 'bg-blue-600 text-white rounded-md shadow-sm' : 'text-gray-700 hover:bg-gray-100 rounded-md'}`}
+              >
+                {h}
+              </div>
+            ))}
+          </div>
+          <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] text-center pl-1">
+            {minutes.map(m => (
+              <div 
+                key={`m-${m}`}
+                onClick={(e) => { e.stopPropagation(); handleMinuteSelect(m); }}
+                className={`py-2 text-sm font-bold cursor-pointer transition-all ${selectedMinute === m ? 'bg-blue-600 text-white rounded-md shadow-sm' : 'text-gray-700 hover:bg-gray-100 rounded-md'}`}
+              >
+                {m}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function ApproveDriver() {
   const { user, token } = useAuth();
@@ -1044,13 +1133,9 @@ export default function ApproveDriver() {
                           <div className="space-y-4">
                             <div className="space-y-1.5">
                               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Check-In Time</label>
-                              <input
-                                type="time"
+                              <CustomTimePicker
                                 value={getTimeValue(editFormData.time_entry)}
-                                onChange={e => {
-                                  setEditFormData({ ...editFormData, time_entry: updateTimeValue(editFormData.time_entry, e.target.value) });
-                                }}
-                                className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-100 outline-none"
+                                onChange={val => setEditFormData({ ...editFormData, time_entry: updateTimeValue(editFormData.time_entry, val) })}
                               />
                             </div>
                             <div className="space-y-1.5">
@@ -1066,13 +1151,9 @@ export default function ApproveDriver() {
                           <div className="space-y-4">
                             <div className="space-y-1.5">
                               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Check-Out Time</label>
-                              <input
-                                type="time"
+                              <CustomTimePicker
                                 value={getTimeValue(editFormData.time_exit)}
-                                onChange={e => {
-                                  setEditFormData({ ...editFormData, time_exit: updateTimeValue(editFormData.time_exit, e.target.value) });
-                                }}
-                                className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-100 outline-none"
+                                onChange={val => setEditFormData({ ...editFormData, time_exit: updateTimeValue(editFormData.time_exit, val) })}
                               />
                             </div>
                             <div className="space-y-1.5">
