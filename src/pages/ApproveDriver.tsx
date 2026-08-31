@@ -2041,16 +2041,7 @@ export default function ApproveDriver() {
                           <FileText size={16} className="group-hover/ts:scale-110 transition-transform" />
                           <span className="text-[10px] font-black uppercase tracking-widest">Timesheet</span>
                         </button>
-                        {(ts.approved_timesheets[0]?.status_approve ?? 0) !== 1 && (
-                          <button
-                            onClick={() => handleSyncTimesheet(ts)}
-                            className="px-3 py-2 text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 rounded-xl transition-all shadow-sm border border-indigo-100 flex items-center gap-2 active:scale-95 group/sync"
-                            title="Ambil Data Timesheet Portal"
-                          >
-                            <Download size={16} className="group-hover/sync:scale-110 transition-transform" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Ambil Data</span>
-                          </button>
-                        )}
+
                         <button
                           onClick={() => setSelectedTimesheet(ts)}
                           className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-white rounded-xl transition-all shadow-sm ring-1 ring-transparent hover:ring-blue-100"
