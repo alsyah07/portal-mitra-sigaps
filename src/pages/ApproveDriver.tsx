@@ -26,7 +26,8 @@ import {
   FileSpreadsheet,
   ChevronDown,
   Search,
-  Check
+  Check,
+  Download
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -42,6 +43,7 @@ export default function ApproveDriver() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('pending');
   const [driverFilter, setDriverFilter] = useState<string>('all');
+  const [exitFilter, setExitFilter] = useState<string>('all');
   const [isDriverDropdownOpen, setIsDriverDropdownOpen] = useState(false);
   const [driverSearchQuery, setDriverSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -198,6 +200,82 @@ export default function ApproveDriver() {
     if (!current) return newVal;
     if (!current.includes(' ')) return newVal;
     return `${current.split(' ')[0]} ${newVal}:00`;
+  };
+
+  const handleSyncTimesheet = async (ts: Timesheet) => {
+    try {
+      const result = await Swal.fire({
+        title: 'Ambil Data Timesheet?',
+        text: `Tarik data timesheet dari portal untuk driver ini?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#4d57ef',
+        cancelButtonColor: '#f1f5f9',
+        confirmButtonText: 'Ya, Ambil',
+        cancelButtonText: 'Batal',
+        customClass: {
+          popup: 'rounded-2xl',
+          confirmButton: 'rounded-xl text-sm font-bold px-6 py-2.5',
+          cancelButton: 'rounded-xl text-sm font-bold px-6 py-2.5 text-gray-600 border border-gray-200 hover:bg-gray-50'
+        }
+      });
+
+      if (result.isConfirmed) {
+        const token = localStorage.getItem('mitra_token');
+        let tsDate = ts.date_timesheets;
+        if (typeof ts.date_timesheets === 'string' && /^\d+$/.test(ts.date_timesheets)) {
+            const d = new Date(Number(ts.date_timesheets) * 1000);
+            tsDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        }
+
+        const response = await fetch(`${import.meta.env.VITE_URL_API}sync_timesheets_portal/${ts.code_customer}/${tsDate}/${ts.employee_id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.status === 'success') {
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil',
+            text: data.message || 'Data berhasil diambil dari portal',
+            confirmButtonColor: '#4d57ef',
+            customClass: {
+              popup: 'rounded-2xl',
+              confirmButton: 'rounded-xl text-sm font-bold px-6 py-2.5'
+            }
+          });
+          fetchTimesheets(); // refresh data
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: data.message || 'Gagal mengambil data',
+            confirmButtonColor: '#4d57ef',
+            customClass: {
+              popup: 'rounded-2xl',
+              confirmButton: 'rounded-xl text-sm font-bold px-6 py-2.5'
+            }
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error syncing timesheet:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Terjadi kesalahan pada sistem',
+        confirmButtonColor: '#4d57ef',
+        customClass: {
+          popup: 'rounded-2xl',
+          confirmButton: 'rounded-xl text-sm font-bold px-6 py-2.5'
+        }
+      });
+    }
   };
 
   const handleApprove = async (id: number, status: number) => {
@@ -705,10 +783,22 @@ export default function ApproveDriver() {
       driverFilter === 'all' ||
       ts.employee_id === driverFilter;
 
+    const matchesExit = 
+      exitFilter === 'all' || 
+      (exitFilter === 'missing' && (!ts.time_exit || ts.time_exit === '-' || ts.time_exit === '00:00')) ||
+      (exitFilter === 'present' && (ts.time_exit && ts.time_exit !== '-' && ts.time_exit !== '00:00'));
+
     const driverName = drivers.find(d => d.employee_id === ts.employee_id)?.full_name || 'Verified Transport Partner';
     const isNotVerifiedTransport = driverName !== 'Verified Transport Partner';
 
-    return matchesSearch && matchesStatus && matchesDate && matchesDriver && isNotVerifiedTransport;
+    return matchesSearch && matchesStatus && matchesDate && matchesDriver && matchesExit && isNotVerifiedTransport;
+  }).sort((a, b) => {
+    const getTsDate = (val: string | undefined) => {
+      if (!val) return 0;
+      const isUnix = /^\d+$/.test(val);
+      return isUnix ? Number(val) * (val.length > 10 ? 1 : 1000) : new Date(val).getTime();
+    };
+    return getTsDate(b.date_timesheets) - getTsDate(a.date_timesheets);
   });
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -1657,6 +1747,20 @@ export default function ApproveDriver() {
                   <ChevronRight size={14} className="rotate-90" />
                 </div>
               </div>
+              <div className="relative">
+                <select
+                  value={exitFilter}
+                  onChange={(e) => { setExitFilter(e.target.value); setCurrentPage(1); }}
+                  className="appearance-none border border-gray-200 rounded-xl px-4 py-2 pr-10 text-sm bg-white hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer font-bold"
+                >
+                  <option value="all">Jam Keluar: Semua</option>
+                  <option value="missing">Belum Ada Jam Keluar</option>
+                  <option value="present">Sudah Ada Jam Keluar</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                  <ChevronRight size={14} className="rotate-90" />
+                </div>
+              </div>
 
               <div className="relative z-40">
                 <div
@@ -1936,6 +2040,14 @@ export default function ApproveDriver() {
                         >
                           <FileText size={16} className="group-hover/ts:scale-110 transition-transform" />
                           <span className="text-[10px] font-black uppercase tracking-widest">Timesheet</span>
+                        </button>
+                        <button
+                          onClick={() => handleSyncTimesheet(ts)}
+                          className="px-3 py-2 text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 rounded-xl transition-all shadow-sm border border-indigo-100 flex items-center gap-2 active:scale-95 group/sync"
+                          title="Ambil Data Timesheet Portal"
+                        >
+                          <Download size={16} className="group-hover/sync:scale-110 transition-transform" />
+                          <span className="text-[10px] font-black uppercase tracking-widest">Ambil Data</span>
                         </button>
                         <button
                           onClick={() => setSelectedTimesheet(ts)}

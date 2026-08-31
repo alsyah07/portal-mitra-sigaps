@@ -133,6 +133,11 @@ export default function DriverTimesheets() {
                     >
                       <img
                         src={driver.foto || `https://ui-avatars.com/api/?name=${driver.nama_lengkap}&background=1e3a5f&color=fff&bold=true`}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.onerror = null;
+                          target.src = `https://ui-avatars.com/api/?name=${driver.nama_lengkap}&background=1e3a5f&color=fff&bold=true`;
+                        }}
                         alt=""
                         className="w-full h-full object-cover"
                       />
